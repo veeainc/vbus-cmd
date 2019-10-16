@@ -47,8 +47,11 @@ func main() {
 	veeabus.Permission_Subscribe("system.>")
 	veeabus.Permission_Publish("system.>")
 
+	time.Sleep(5 * time.Second)
+
 	if cmd == "publish" {
 		veeabus.Publish(att, []byte(data))
+		time.Sleep(time.Second)
 		log.Printf("Publish done\n")
 	} else if cmd == "subscribe" {
 		veeabus.Subscribe(att, "none", func(subject string, reply string, msg []byte) {
@@ -69,5 +72,7 @@ func main() {
 	} else {
 		log.Fatalf("bad argument\n")
 	}
+
+	veeabus.Close()
 
 }
