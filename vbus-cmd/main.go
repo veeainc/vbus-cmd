@@ -31,7 +31,8 @@ import (
 //var closer chan os.Signal
 var serviceName string
 var maintain bool
-var path string
+var timeout int
+var vpath string
 var value string
 var vtype string
 
@@ -60,6 +61,8 @@ func Init() *Node {
 }
 
 func Close(veeabus *Node) {
+	time.Sleep(time.Second)
+
 	ioutil.WriteFile(serviceName+".db", []byte(veeabus.Tree()), 0666)
 
 	if maintain == true {
@@ -113,11 +116,10 @@ func main() {
 		Use:   "discover",
 		Short: "return tree of the path discovered",
 		//Long: `print is for printing anything back to the screen. For many years people have printed back to the screen.`,
-		Args: cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("Discover: " + path)
+			log.Printf("Discover: " + vpath)
 			veeabus := Init()
-			tmpNode, err := veeabus.Discover(path, "", time.Second)
+			tmpNode, err := veeabus.Discover(vpath, "", time.Duration(timeout)*time.Second)
 			if err != nil {
 				log.Fatalf("Error: %v\n", err)
 			}
@@ -126,24 +128,25 @@ func main() {
 			Close(veeabus)
 		},
 	}
-	cmdDiscover.Flags().StringVarP(&path, "path", "p", "", "path to node")
+	cmdDiscover.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
+	cmdDiscover.Flags().IntVarP(&timeout, "timeout", "o", 4, "time out (in second)")
 
 	var cmdAddAttribute = &cobra.Command{
 		Use:   "add",
 		Short: "add an attribute in vBus tree",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("add attribute " + path + " , value: " + value + " (" + vtype + ")")
+			log.Printf("add attribute " + vpath + " , value: " + value + " (" + vtype + ")")
 			veeabus := Init()
 			val, err := ConvertAttribute(value, vtype)
 			if err != nil {
 				log.Printf(err.Error())
 			} else {
-				veeabus.AddAttribute(path, val)
+				veeabus.AddAttribute(vpath, val)
 			}
 			Close(veeabus)
 		},
 	}
-	cmdAddAttribute.Flags().StringVarP(&path, "path", "p", "", "path to attribute")
+	cmdAddAttribute.Flags().StringVarP(&vpath, "path", "p", "", "path to attribute")
 	cmdAddAttribute.Flags().StringVarP(&value, "value", "v", "nil", "attribute value")
 	cmdAddAttribute.Flags().StringVarP(&vtype, "type", "t", "string", "attribute value type")
 
@@ -151,25 +154,25 @@ func main() {
 		Use:   "add",
 		Short: "add a node in vBus tree",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("add node " + path + " : " + value)
+			log.Printf("add node " + vpath + " : " + value)
 			veeabus := Init()
-			err := veeabus.AddNode(path, value)
+			err := veeabus.AddNode(vpath, value)
 			if err != nil {
 				log.Printf(err.Error())
 			}
 			Close(veeabus)
 		},
 	}
-	cmdAddNode.Flags().StringVarP(&path, "path", "p", "", "path to node")
+	cmdAddNode.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
 	cmdAddNode.Flags().StringVarP(&value, "node", "n", "nil", "node (string)")
 
 	var cmdAddMethod = &cobra.Command{
 		Use:   "add",
 		Short: "add a method in vBus tree",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("add method " + path + " : " + value)
+			log.Printf("add method " + vpath + " : " + value)
 			veeabus := Init()
-			_, err := veeabus.AddMethod(path, func(data []byte) []byte {
+			_, err := veeabus.AddMethod(vpath, func(data []byte) []byte {
 				fmt.Printf("Received a message: %s\n", string(data))
 				return nil
 			})
@@ -179,16 +182,16 @@ func main() {
 			Close(veeabus)
 		},
 	}
-	cmdAddMethod.Flags().StringVarP(&path, "path", "p", "", "path to node")
+	cmdAddMethod.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
 	cmdAddMethod.Flags().StringVarP(&value, "node", "n", "nil", "node (string)")
 
 	var cmdSetNode = &cobra.Command{
 		Use:   "set",
 		Short: "set a node in vBus tree",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("set node " + path + " : " + value)
+			log.Printf("set node " + vpath + " : " + value)
 			veeabus := Init()
-			node, err := veeabus.Node(path)
+			node, err := veeabus.Node(vpath)
 			if err != nil {
 				log.Printf(err.Error())
 			} else {
@@ -201,20 +204,20 @@ func main() {
 			Close(veeabus)
 		},
 	}
-	cmdSetNode.Flags().StringVarP(&path, "path", "p", "", "path to node")
+	cmdSetNode.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
 	cmdSetNode.Flags().StringVarP(&value, "node", "n", "nil", "node (string)")
 
 	var cmdSetAttribute = &cobra.Command{
 		Use:   "set",
 		Short: "set an attribute in vBus tree",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("set attribute " + path + " , value: " + value + " (" + vtype + ")")
+			log.Printf("set attribute " + vpath + " , value: " + value + " (" + vtype + ")")
 			veeabus := Init()
 			val, err := ConvertAttribute(value, vtype)
 			if err != nil {
 				log.Printf(err.Error())
 			} else {
-				attribute, err := veeabus.Attribute(path)
+				attribute, err := veeabus.Attribute(vpath)
 				if err != nil {
 					log.Printf(err.Error())
 				} else {
@@ -227,7 +230,7 @@ func main() {
 			Close(veeabus)
 		},
 	}
-	cmdSetAttribute.Flags().StringVarP(&path, "path", "p", "", "path to attribute")
+	cmdSetAttribute.Flags().StringVarP(&vpath, "path", "p", "", "path to attribute")
 	cmdSetAttribute.Flags().StringVarP(&value, "value", "v", "nil", "attribute value")
 	cmdSetAttribute.Flags().StringVarP(&vtype, "type", "t", "string", "attribute value type")
 
@@ -235,9 +238,9 @@ func main() {
 		Use:   "get",
 		Short: "get a node in vBus tree",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("get node " + path)
+			log.Printf("get node " + vpath)
 			veeabus := Init()
-			node, err := veeabus.Node(path)
+			node, err := veeabus.Node(vpath)
 			if err != nil {
 				log.Printf(err.Error())
 			} else {
@@ -252,15 +255,15 @@ func main() {
 			Close(veeabus)
 		},
 	}
-	cmdGetNode.Flags().StringVarP(&path, "path", "p", "", "path to node")
+	cmdGetNode.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
 
 	var cmdGetAttribute = &cobra.Command{
 		Use:   "get",
 		Short: "get an attribute in vBus tree",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("get attribute " + path)
+			log.Printf("get attribute " + vpath)
 			veeabus := Init()
-			att, err := veeabus.Attribute(path)
+			att, err := veeabus.Attribute(vpath)
 			if err != nil {
 				log.Printf(err.Error())
 			} else {
@@ -275,15 +278,15 @@ func main() {
 			Close(veeabus)
 		},
 	}
-	cmdGetAttribute.Flags().StringVarP(&path, "path", "p", "", "path to attribute")
+	cmdGetAttribute.Flags().StringVarP(&vpath, "path", "p", "", "path to attribute")
 
 	var cmdAddNodeSub = &cobra.Command{
 		Use:   "sub",
 		Short: "subscribe to a node add",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("subscribe to " + path)
+			log.Printf("subscribe to " + vpath)
 			veeabus := Init()
-			node, err := veeabus.Node(path)
+			node, err := veeabus.Node(vpath)
 			if err != nil {
 				log.Printf(err.Error())
 			} else {
@@ -299,15 +302,15 @@ func main() {
 			Close(veeabus)
 		},
 	}
-	cmdAddNodeSub.Flags().StringVarP(&path, "path", "p", "", "path to node")
+	cmdAddNodeSub.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
 
 	var cmdGetNodeSub = &cobra.Command{
 		Use:   "sub",
 		Short: "subscribe to a node get",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("subscribe to " + path)
+			log.Printf("subscribe to " + vpath)
 			veeabus := Init()
-			node, err := veeabus.Node(path)
+			node, err := veeabus.Node(vpath)
 			if err != nil {
 				log.Printf(err.Error())
 			} else {
@@ -323,15 +326,15 @@ func main() {
 			Close(veeabus)
 		},
 	}
-	cmdGetNodeSub.Flags().StringVarP(&path, "path", "p", "", "path to node")
+	cmdGetNodeSub.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
 
 	var cmdSetNodeSub = &cobra.Command{
 		Use:   "sub",
 		Short: "subscribe to a node set",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("subscribe to " + path)
+			log.Printf("subscribe to " + vpath)
 			veeabus := Init()
-			node, err := veeabus.Node(path)
+			node, err := veeabus.Node(vpath)
 			if err != nil {
 				log.Printf(err.Error())
 			} else {
@@ -347,15 +350,15 @@ func main() {
 			Close(veeabus)
 		},
 	}
-	cmdSetNodeSub.Flags().StringVarP(&path, "path", "p", "", "path to node")
+	cmdSetNodeSub.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
 
 	var cmdGetAttSub = &cobra.Command{
 		Use:   "sub",
 		Short: "subscribe to a attribute get",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("subscribe to " + path)
+			log.Printf("subscribe to " + vpath)
 			veeabus := Init()
-			att, err := veeabus.Attribute(path)
+			att, err := veeabus.Attribute(vpath)
 			if err != nil {
 				log.Printf(err.Error())
 			} else {
@@ -371,15 +374,15 @@ func main() {
 			Close(veeabus)
 		},
 	}
-	cmdGetAttSub.Flags().StringVarP(&path, "path", "p", "", "path to node")
+	cmdGetAttSub.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
 
 	var cmdSetAttSub = &cobra.Command{
 		Use:   "sub",
 		Short: "subscribe to a attribute set",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("subscribe to " + path)
+			log.Printf("subscribe to " + vpath)
 			veeabus := Init()
-			att, err := veeabus.Attribute(path)
+			att, err := veeabus.Attribute(vpath)
 			if err != nil {
 				log.Printf(err.Error())
 			} else {
@@ -396,7 +399,7 @@ func main() {
 			Close(veeabus)
 		},
 	}
-	cmdSetAttSub.Flags().StringVarP(&path, "path", "p", "", "path to node")
+	cmdSetAttSub.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
 
 	/////////////////////////////////////////////////
 	var rootCmd = &cobra.Command{Use: "vbus-cmd"}

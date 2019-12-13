@@ -15,7 +15,8 @@ import (
 	"strings"
 	"time"
 
-	gabs "github.com/Jeffail/gabs"
+	//"github.com/Jeffail/gabs/v2"
+	"github.com/Jeffail/gabs"
 	"github.com/godbus/dbus"
 	"github.com/grandcat/zeroconf"
 	"github.com/nats-io/nats.go"
@@ -163,7 +164,9 @@ func Open(id string) (*Node, error) {
 		localConfig.Array("client", "permissions", "subscribe")
 		localConfig.Array("client", "permissions", "publish")
 		localConfig.ArrayAppend(id+".>", "client", "permissions", "subscribe")
+		localConfig.ArrayAppend(id, "client", "permissions", "subscribe")
 		localConfig.ArrayAppend(id+".>", "client", "permissions", "publish")
+		localConfig.ArrayAppend(id, "client", "permissions", "publish")
 		localConfig.Set(string(privatekey), "key", "private")
 
 		// create private tree
@@ -285,7 +288,7 @@ func Open(id string) (*Node, error) {
 	// create base element tree
 	// only a base "object" type described by it's empty schema
 	v.element = gabs.New()
-	v.element.SetP("object", uuid+".schema.type")
+	v.element.SetP("object", "schema.type")
 	v.base = uuid
 
 	// connect to vbus server
@@ -318,18 +321,41 @@ func Open(id string) (*Node, error) {
 	log.Printf("publish element\n")
 	v.nc.Publish(v.base, v.element.Bytes())
 
-	v.sub, _ = v.nc.Subscribe(uuid+".>", func(m *nats.Msg) {
+	v.sub, _ = v.nc.Subscribe(id+".>", v.dbAccess)
+	v.nc.Subscribe(id, v.dbAccess)
+
+	return v, nil
+}
+
+func (v *Node) dbAccess(m *nats.Msg) {
+
+	// first track generic discovery
+	if strings.HasPrefix(v.base, m.Subject) {
+		fullNode := v.Full()
+		log.Printf("Request to get " + m.Subject)
+		if fullNode.CheckNode(m.Subject) == true {
+			tmpNode, err := fullNode.Node(m.Subject)
+			if err != nil {
+				log.Printf("Error in get node: %v\n", err)
+			} else {
+				m.Respond([]byte(tmpNode.Tree()))
+				log.Printf(tmpNode.Tree())
+			}
+		}
+	} else if strings.HasPrefix(m.Subject, v.base) {
 		cmd := m.Subject[strings.LastIndex(m.Subject, ".")+1:]
-		path := m.Subject[:strings.LastIndex(m.Subject, ".")-1]
+		path := strings.TrimPrefix(m.Subject[:strings.LastIndex(m.Subject, ".")], v.base)
+		path = strings.TrimPrefix(path, ".")
 		switch cmd {
 		default:
 			log.Printf("cmd: " + m.Subject)
+			path = m.Subject
 			if v.CheckNode(path) == true {
 				tmpNode, err := v.Node(path)
 				if err != nil {
 					log.Printf("Error in get node: %v\n", err)
 				} else {
-					m.Respond([]byte(tmpNode.Tree()))
+					m.Respond([]byte(tmpNode.Full().Tree()))
 				}
 			} else {
 				tmpAtt, err := v.Attribute(path)
@@ -350,7 +376,22 @@ func Open(id string) (*Node, error) {
 				}
 			}
 		case "add":
-			log.Printf("set add: " + path + " - not supported yet")
+			log.Printf("add: " + string(m.Data) + " to " + path)
+			if v.CheckNode(path) == true {
+				tmpNode, err := v.Node(path)
+				if err != nil {
+					log.Printf("Error in get node: %v\n", err)
+				} else {
+					newData, err := gabs.ParseJSON(m.Data)
+					if err == nil {
+						tmpNode.element.Merge(newData)
+					} else {
+						log.Printf(err.Error())
+					}
+				}
+			} else {
+				log.Printf("node not existing")
+			}
 		case "get":
 			log.Printf("get cmd: " + path)
 			if stringInSlice(path, subListSet) == true {
@@ -388,10 +429,7 @@ func Open(id string) (*Node, error) {
 		case "remove":
 			log.Printf("remove cmd: " + path + " - not supported yet")
 		}
-
-	})
-
-	return v, nil
+	}
 }
 
 // Close node
@@ -413,21 +451,42 @@ func (v *Node) Tree() string {
 	return ""
 }
 
+// Full returns the full tree contained by the node
+func (v *Node) Full() *Node {
+	node := &(Node{})
+	node.nc = v.nc
+	node.base = v.base
+	node.element = gabs.New()
+	node.element.SetP(v.element.Data(), v.base)
+
+	return node
+}
+
 // CheckNode returns true if path is a node
 func (v *Node) CheckNode(subpath string) bool {
 	// is element contains a schema, this is a node
-	return v.element.Exists(subpath + ".schema.type")
+	if subpath == "" {
+		// node root always exist
+		return true
+	}
+	return v.element.ExistsP(subpath) // + ".schema.type")
 }
 
 // Node returns the sub node requested
 func (v *Node) Node(subpath string) (*Node, error) {
+	if subpath == "" {
+		// return self
+		return v, nil
+	}
+
 	node := &(Node{})
 	node.nc = v.nc
-	node.element = v.element.Path(subpath)
-	node.base = v.base + "." + subpath
-
-	if node.element == nil {
-		return nil, errors.New("subpath not found")
+	if v.element.ExistsP(subpath) == false {
+		node.base = subpath
+		node.element = gabs.New()
+	} else {
+		node.element = v.element.Path(subpath)
+		node.base = v.base + "." + subpath
 	}
 
 	return node, nil
@@ -437,34 +496,54 @@ func (v *Node) Node(subpath string) (*Node, error) {
 func (v *Node) Attribute(path string) (*Attribute, error) {
 	attr := &(Attribute{})
 	attr.nc = v.nc
-	attr.path = v.base + "." + path
+
+	log.Printf("looking for " + path + " in:")
+	log.Printf(v.Tree())
 
 	if v.element.ExistsP(path) == false {
-		return nil, errors.New("attribute not found")
+		log.Printf("path not already existing, try to get it")
+		// if we don't have any information about this attribute, first, get it's node
+		nodePath := path[:strings.LastIndex(path, ".")]
+		nodeKey := path[strings.LastIndex(path, "."):]
+		nodeKey = strings.TrimPrefix(nodeKey, ".")
+		tmpNode, err := v.Node(nodePath)
+		if err != nil {
+			return nil, errors.New("cannot retrieve Attribute Node" + err.Error())
+		}
+		err = tmpNode.Get()
+		if err != nil {
+			return nil, errors.New("cannot get Attribute Node: " + err.Error())
+		}
+		log.Printf(tmpNode.Tree())
+		return tmpNode.Attribute(nodeKey)
 	}
 
 	parent := v.base
-	attr.key = path
 	ind := strings.LastIndex(path, ".")
 	if ind > 0 {
-		parent = v.base + "." + path[:ind]
+		parent = path[:ind]
 		attr.key = path[ind:]
+		attr.path = v.base + parent
+		attr.atype = v.element.Path(parent + ".schema.properties." + attr.key + ".type").Data().(string)
+		attr.parent = v.element.Path(parent)
+	} else {
+		attr.key = path
+		attr.path = v.base
+		attr.atype = v.element.Path("schema.properties." + attr.key + ".type").Data().(string)
+		attr.parent = v.element.Path(parent)
 	}
-
-	attr.atype = v.element.Path(parent + ".schema.properties." + attr.key + ".type").Data().(string)
-	attr.parent = v.element.Path(parent)
 
 	switch attr.atype {
 	default:
 		return nil, errors.New("type not supported")
 	case "boolean":
-		attr.value = v.element.Path(path).Data()
+		attr.value = v.element.Path(attr.key).Data()
 	case "integer":
-		attr.value = v.element.Path(path).Data()
+		attr.value = v.element.Path(attr.key).Data()
 	case "string":
-		attr.value = v.element.Path(path).Data()
+		attr.value = v.element.Path(attr.key).Data()
 	case "number":
-		attr.value = v.element.Path(path).Data()
+		attr.value = v.element.Path(attr.key).Data()
 	}
 
 	return attr, nil
@@ -533,15 +612,15 @@ func (v *Node) AddAttribute(path string, value interface{}) error {
 
 	elementJSON := gabs.New()
 	elementJSON.SetP(value, path)
-	v.element.Merge(elementJSON)
+	//v.element.Merge(elementJSON)
 
 	ind := strings.LastIndex(path, ".")
 	if ind > 0 {
-		parent := v.base + "." + path[:ind]
+		parent := path[:ind]
 		attributename := path[ind:]
-		v.element.SetP(attributeType, parent+".schema.properties."+attributename+".type")
+		elementJSON.SetP(attributeType, parent+".schema.properties."+attributename+".type")
 	} else {
-		v.element.SetP(attributeType, "schema.properties."+path+".type")
+		elementJSON.SetP(attributeType, "schema.properties."+path+".type")
 	}
 
 	v.nc.Publish(v.base+".add", elementJSON.Bytes())
@@ -559,10 +638,10 @@ func (v *Node) AddNode(path string, nodejson string) error {
 	elementJSON := gabs.New()
 	elementJSON.SetP(newNode, path)
 	elementJSON.SetP("object", path+".schema.type")
-	v.element.Merge(elementJSON)
+	//v.element.Merge(elementJSON)
 
-	subnodes := strings.Split(path, ".")
-	v.element.SetP("object", "schema.properties."+subnodes[0]+".type")
+	//subnodes := strings.Split(path, ".")
+	//v.element.SetP("object", "schema.properties."+subnodes[0]+".type")
 
 	v.nc.Publish(v.base+".add", elementJSON.Bytes())
 
@@ -647,7 +726,7 @@ func (v *Node) Get() error {
 
 // Get request the node info on vbus
 func (a *Attribute) Get() (interface{}, error) {
-	msg, err := a.nc.Request(a.path+".get", []byte(""), 100*time.Millisecond)
+	msg, err := a.nc.Request(a.path+"."+a.key+".get", []byte(""), 100*time.Millisecond)
 
 	if err != nil {
 		return nil, err
