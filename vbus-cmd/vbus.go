@@ -524,11 +524,17 @@ func (v *Node) Attribute(path string) (*Attribute, error) {
 		parent = path[:ind]
 		attr.key = path[ind:]
 		attr.path = v.base + parent
+		if v.element.ExistsP(parent+".schema.properties."+attr.key+".type") == false {
+			return nil, errors.New("not an attribute")
+		}
 		attr.atype = v.element.Path(parent + ".schema.properties." + attr.key + ".type").Data().(string)
 		attr.parent = v.element.Path(parent)
 	} else {
 		attr.key = path
 		attr.path = v.base
+		if v.element.ExistsP("schema.properties."+attr.key+".type") == false {
+			return nil, errors.New("not an attribute")
+		}
 		attr.atype = v.element.Path("schema.properties." + attr.key + ".type").Data().(string)
 		attr.parent = v.element.Path(parent)
 	}
@@ -547,6 +553,26 @@ func (v *Node) Attribute(path string) (*Attribute, error) {
 	}
 
 	return attr, nil
+}
+
+// Method returns the sub method requested
+func (v *Node) Method(subpath string) (*Method, error) {
+	if subpath == "" {
+		// return self
+		return nil, errors.New("Node not a Method")
+	}
+
+	node := &(Method{})
+	node.nc = v.nc
+	if v.element.ExistsP(subpath) == false {
+		node.base = subpath
+		node.element = gabs.New()
+	} else {
+		node.element = v.element.Path(subpath)
+		node.base = v.base + "." + subpath
+	}
+
+	return node, nil
 }
 
 // Discover returns all data tree from the path requested
@@ -654,20 +680,20 @@ func (v *Node) AddMethod(path string, cb MethodCallback) (*Method, error) {
 
 	elementJSON := gabs.New()
 	elementJSON.SetP(nil, path+".return")
-	elementJSON.SetP("object", path+"schema.type")
-	elementJSON.SetP("object", path+"schema.properties.return.type")
-	v.element.Merge(elementJSON)
+	elementJSON.SetP("object", path+".schema.type")
+	elementJSON.SetP("object", path+".schema.properties.return.type")
+	//v.element.Merge(elementJSON)
 
-	subnodes := strings.Split(path, ".")
-	v.element.SetP("object", "schema.properties."+subnodes[0]+".type")
+	//subnodes := strings.Split(path, ".")
+	//v.element.SetP("object", "schema.properties."+subnodes[0]+".type")
 
 	method := &(Method{})
 	method.nc = v.nc
-	method.element = v.element.Path(path)
+	method.element = elementJSON.Path(path)
 	method.base = v.base + "." + path
 
 	var err error
-	method.sub, err = v.nc.Subscribe(v.base+".set", func(m *nats.Msg) {
+	method.sub, err = method.nc.Subscribe(method.base+".set", func(m *nats.Msg) {
 		fmt.Printf("Received a message: %s\n", string(m.Data))
 		answer := cb(m.Data)
 		if answer != nil {
@@ -678,7 +704,7 @@ func (v *Node) AddMethod(path string, cb MethodCallback) (*Method, error) {
 		log.Printf("Subscribe error: %v\n", err)
 	}
 
-	subListSet = append(subListSet, v.base+".set")
+	subListSet = append(subListSet, method.base+".set")
 
 	v.nc.Publish(v.base+".add", elementJSON.Bytes())
 
@@ -710,6 +736,12 @@ func (a *Attribute) Set(value interface{}) error {
 
 	a.nc.Publish(a.path+".set", []byte(fmt.Sprintf("%v", value.(interface{}))))
 
+	return nil
+}
+
+// Set update the method on vbus
+func (m *Method) Set(msg []byte) error {
+	m.nc.Publish(m.base+".set", msg)
 	return nil
 }
 

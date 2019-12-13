@@ -170,7 +170,7 @@ func main() {
 		Use:   "add",
 		Short: "add a method in vBus tree",
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Printf("add method " + vpath + " : " + value)
+			log.Printf("add method " + vpath)
 			veeabus := Init()
 			_, err := veeabus.AddMethod(vpath, func(data []byte) []byte {
 				fmt.Printf("Received a message: %s\n", string(data))
@@ -183,7 +183,6 @@ func main() {
 		},
 	}
 	cmdAddMethod.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
-	cmdAddMethod.Flags().StringVarP(&value, "node", "n", "nil", "node (string)")
 
 	var cmdSetNode = &cobra.Command{
 		Use:   "set",
@@ -233,6 +232,28 @@ func main() {
 	cmdSetAttribute.Flags().StringVarP(&vpath, "path", "p", "", "path to attribute")
 	cmdSetAttribute.Flags().StringVarP(&value, "value", "v", "nil", "attribute value")
 	cmdSetAttribute.Flags().StringVarP(&vtype, "type", "t", "string", "attribute value type")
+
+	var cmdSetMethod = &cobra.Command{
+		Use:   "set",
+		Short: "send a message to a method in vBus tree",
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Printf("send to method " + vpath + " : " + value)
+			veeabus := Init()
+			method, err := veeabus.Method(vpath)
+			if err != nil {
+				log.Printf(err.Error())
+			} else {
+				err = method.Set([]byte(value))
+				if err != nil {
+					log.Printf(err.Error())
+				}
+			}
+
+			Close(veeabus)
+		},
+	}
+	cmdSetMethod.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
+	cmdSetMethod.Flags().StringVarP(&value, "value", "v", "", "message to send (string)")
 
 	var cmdGetNode = &cobra.Command{
 		Use:   "get",
@@ -418,7 +439,7 @@ func main() {
 	attCmd.AddCommand(cmdAddAttribute, cmdGetAttribute, cmdSetAttribute)
 
 	var methodCmd = &cobra.Command{Use: "method"}
-	methodCmd.AddCommand(cmdAddMethod)
+	methodCmd.AddCommand(cmdAddMethod, cmdSetMethod)
 
 	rootCmd.AddCommand(cmdDiscover, nodeCmd, attCmd, methodCmd)
 	rootCmd.Execute()
