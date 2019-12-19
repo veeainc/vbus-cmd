@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	//"github.com/Jeffail/gabs/v2"
-	"github.com/Jeffail/gabs"
+	"github.com/Jeffail/gabs/v2"
+	//"github.com/Jeffail/gabs"
 	"github.com/godbus/dbus"
 	"github.com/grandcat/zeroconf"
 	"github.com/nats-io/nats.go"
@@ -975,6 +975,8 @@ func (v *Node) Permission(permission string) error {
 		if value == false {
 			return errors.New("permission denied")
 		}
+
+		time.Sleep(1000 * time.Millisecond)
 
 		ioutil.WriteFile(localConfig.S("client", "user").Data().(string)+".conf", localConfig.Bytes(), 0666)
 	} else {

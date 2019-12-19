@@ -1,11 +1,3 @@
-/*
-Test program for interacting with audiomanager from go and playing audio
-Can be run like so:
-./discotheque -am 10.0.14.169:21403 -b 15 -media /Users/lucas/workspace/go/src/github.com/Max2Inc/SimpleAudio/media/201500.wav -z test
-or to see help options
-./discotheque -h
-*/
-
 package main
 
 import (
@@ -23,7 +15,7 @@ import (
 	"time"
 
 	//"bitbucket.org/vbus/vbus.go"
-	"github.com/Jeffail/gabs"
+	"github.com/Jeffail/gabs/v2"
 
 	"github.com/spf13/cobra"
 )
@@ -130,6 +122,22 @@ func main() {
 	}
 	cmdDiscover.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
 	cmdDiscover.Flags().IntVarP(&timeout, "timeout", "o", 4, "time out (in second)")
+
+	var cmdPermission = &cobra.Command{
+		Use:   "permission",
+		Short: "request permission to the path",
+		//Long: `print is for printing anything back to the screen. For many years people have printed back to the screen.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Printf("Permission for: " + vpath)
+			veeabus := Init()
+			err := veeabus.Permission(vpath)
+			if err != nil {
+				log.Fatalf("Error: %v\n", err)
+			}
+			Close(veeabus)
+		},
+	}
+	cmdPermission.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
 
 	var cmdAddAttribute = &cobra.Command{
 		Use:   "add",
@@ -441,7 +449,7 @@ func main() {
 	var methodCmd = &cobra.Command{Use: "method"}
 	methodCmd.AddCommand(cmdAddMethod, cmdSetMethod)
 
-	rootCmd.AddCommand(cmdDiscover, nodeCmd, attCmd, methodCmd)
+	rootCmd.AddCommand(cmdDiscover, cmdPermission, nodeCmd, attCmd, methodCmd)
 	rootCmd.Execute()
 
 }
