@@ -14,9 +14,9 @@ import (
 	"os"
 	"time"
 
-	//"bitbucket.org/vbus/vbus.go"
-	"github.com/Jeffail/gabs/v2"
-
+	//"github.com/Jeffail/gabs/v2"
+	vBus "bitbucket.org/vbus/vbus.go"
+	"github.com/Jeffail/gabs"
 	"github.com/spf13/cobra"
 )
 
@@ -28,9 +28,9 @@ var vpath string
 var value string
 var vtype string
 
-func Init() *Node {
+func Init() *vBus.Node {
 	// new session
-	veeabus, err := Open(serviceName)
+	veeabus, err := vBus.Open(serviceName)
 	if err != nil {
 		log.Fatalf("Can't connect to vbus server: %v\n", err)
 	}
@@ -52,7 +52,7 @@ func Init() *Node {
 	return veeabus
 }
 
-func Close(veeabus *Node) {
+func Close(veeabus *vBus.Node) {
 	time.Sleep(time.Second)
 
 	ioutil.WriteFile(serviceName+".db", []byte(veeabus.Tree()), 0666)
@@ -241,17 +241,17 @@ func main() {
 	cmdSetAttribute.Flags().StringVarP(&value, "value", "v", "nil", "attribute value")
 	cmdSetAttribute.Flags().StringVarP(&vtype, "type", "t", "string", "attribute value type")
 
-	var cmdSetMethod = &cobra.Command{
-		Use:   "set",
-		Short: "send a message to a method in vBus tree",
+	var cmdCallMethod = &cobra.Command{
+		Use:   "call",
+		Short: "call a method in vBus tree",
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Printf("send to method " + vpath + " : " + value)
+			log.Printf("call method " + vpath + " : " + value)
 			veeabus := Init()
 			method, err := veeabus.Method(vpath)
 			if err != nil {
 				log.Printf(err.Error())
 			} else {
-				err = method.Set([]byte(value))
+				err = method.Call([]byte(value))
 				if err != nil {
 					log.Printf(err.Error())
 				}
@@ -260,8 +260,8 @@ func main() {
 			Close(veeabus)
 		},
 	}
-	cmdSetMethod.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
-	cmdSetMethod.Flags().StringVarP(&value, "value", "v", "", "message to send (string)")
+	cmdCallMethod.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
+	cmdCallMethod.Flags().StringVarP(&value, "value", "v", "", "message to send (string)")
 
 	var cmdGetNode = &cobra.Command{
 		Use:   "get",
@@ -286,6 +286,30 @@ func main() {
 	}
 	cmdGetNode.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
 
+	var cmdTypeNode = &cobra.Command{
+		Use:   "type",
+		Short: "get an node element type in vBus tree",
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Printf("get type of node " + vpath)
+			veeabus := Init()
+			node, err := veeabus.Node(vpath)
+			if err != nil {
+				log.Printf(err.Error())
+			} else {
+				err = node.Get()
+				if err != nil {
+					log.Printf(err.Error())
+				} else {
+					log.Printf("element type is: " + node.Type(value))
+				}
+			}
+
+			Close(veeabus)
+		},
+	}
+	cmdTypeNode.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
+	cmdTypeNode.Flags().StringVarP(&value, "subpath", "s", "", "subpath to element")
+
 	var cmdGetAttribute = &cobra.Command{
 		Use:   "get",
 		Short: "get an attribute in vBus tree",
@@ -300,7 +324,7 @@ func main() {
 				if err != nil {
 					log.Printf(err.Error())
 				} else {
-					PrintAttribute(att.value, att.atype)
+					PrintAttribute(att.Value(), att.Type())
 				}
 			}
 
@@ -308,6 +332,24 @@ func main() {
 		},
 	}
 	cmdGetAttribute.Flags().StringVarP(&vpath, "path", "p", "", "path to attribute")
+
+	var cmdTypeAttribute = &cobra.Command{
+		Use:   "type",
+		Short: "get an attribute type in vBus tree",
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Printf("get type of attribute " + vpath)
+			veeabus := Init()
+			att, err := veeabus.Attribute(vpath)
+			if err != nil {
+				log.Printf(err.Error())
+			} else {
+				log.Printf("attribute type is: " + att.Type())
+			}
+
+			Close(veeabus)
+		},
+	}
+	cmdTypeAttribute.Flags().StringVarP(&vpath, "path", "p", "", "path to attribute")
 
 	var cmdAddNodeSub = &cobra.Command{
 		Use:   "sub",
@@ -417,7 +459,7 @@ func main() {
 			} else {
 				err := att.SubscribeSet(func(data interface{}) interface{} {
 					fmt.Printf("Received a message: %s\n", data)
-					PrintAttribute(att.value, att.atype)
+					PrintAttribute(att.Value(), att.Type())
 					return ""
 				})
 				if err != nil {
@@ -439,15 +481,15 @@ func main() {
 	cmdAddNode.AddCommand(cmdAddNodeSub)
 	cmdGetNode.AddCommand(cmdGetNodeSub)
 	cmdSetNode.AddCommand(cmdSetNodeSub)
-	nodeCmd.AddCommand(cmdAddNode, cmdSetNode, cmdGetNode)
+	nodeCmd.AddCommand(cmdAddNode, cmdSetNode, cmdGetNode, cmdTypeNode)
 
 	var attCmd = &cobra.Command{Use: "attribute"}
 	cmdGetAttribute.AddCommand(cmdGetAttSub)
 	cmdSetAttribute.AddCommand(cmdSetAttSub)
-	attCmd.AddCommand(cmdAddAttribute, cmdGetAttribute, cmdSetAttribute)
+	attCmd.AddCommand(cmdAddAttribute, cmdGetAttribute, cmdSetAttribute, cmdTypeAttribute)
 
 	var methodCmd = &cobra.Command{Use: "method"}
-	methodCmd.AddCommand(cmdAddMethod, cmdSetMethod)
+	methodCmd.AddCommand(cmdAddMethod, cmdCallMethod)
 
 	rootCmd.AddCommand(cmdDiscover, cmdPermission, nodeCmd, attCmd, methodCmd)
 	rootCmd.Execute()
