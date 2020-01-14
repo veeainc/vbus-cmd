@@ -86,18 +86,19 @@ func ConvertAttribute(value string, t string) (interface{}, error) {
 }
 
 func PrintAttribute(value interface{}, t string) {
-	switch t {
-	default:
-		log.Printf("Error in get attribute: type not supported\n")
-	case "boolean":
-		log.Printf(strconv.FormatBool(value.(bool)))
-	case "integer":
-		log.Printf(strconv.Itoa(value.(int)))
-	case "string":
-		log.Printf(value.(string))
-	case "number":
-		log.Printf(strconv.FormatFloat(float64(value.(float32)), 'b', -1, 32))
-	}
+	log.Printf("%v", value)
+	// switch t {
+	// default:
+	// 	log.Printf("Error in get attribute: type not supported\n")
+	// case "boolean":
+	// 	log.Printf(strconv.FormatBool(value.(bool)))
+	// case "integer":
+	// 	log.Printf(strconv.Itoa(value.(int)))
+	// case "string":
+	// 	log.Printf(value.(string))
+	// case "number":
+	// 	log.Printf(strconv.FormatFloat(float64(value.(float64)), 'b', -1, 64))
+	// }
 }
 
 func main() {
