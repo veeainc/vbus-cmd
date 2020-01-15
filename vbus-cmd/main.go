@@ -32,7 +32,15 @@ func Init() *vBus.Node {
 	// new session
 	veeabus, err := vBus.Open(serviceName)
 	if err != nil {
-		log.Fatalf("Can't connect to vbus server: %v\n", err)
+		if err == vBus.ErrvBusNoServers {
+			log.Printf("Error no vBus server: %v\n", err)
+			log.Printf("Sleep 5s and try once again")
+			time.Sleep(5 * time.Second)
+			veeabus, err = vBus.Open(serviceName)
+		}
+		if err != nil {
+			log.Fatalf("Can't connect to vbus server: %v\n", err)
+		}
 	}
 
 	//veeabus.Permission_Subscribe("system.>")
