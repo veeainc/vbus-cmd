@@ -24,6 +24,7 @@ import (
 var serviceName string
 var maintain bool
 var timeout int
+var port int
 var vpath string
 var value string
 var vtype string
@@ -45,7 +46,6 @@ func Init() *vBus.Node {
 
 	//veeabus.Permission_Subscribe("system.>")
 	//veeabus.Permission_Publish("system.>")
-
 	time.Sleep(2 * time.Second)
 
 	_, err = os.Stat(serviceName + ".db")
@@ -131,6 +131,28 @@ func main() {
 	}
 	cmdDiscover.Flags().StringVarP(&vpath, "path", "p", "", "path to node")
 	cmdDiscover.Flags().IntVarP(&timeout, "timeout", "o", 4, "time out (in second)")
+
+	var cmdExpose = &cobra.Command{
+		Use:   "expose",
+		Short: "expose a url",
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Printf("expose:")
+			log.Printf("service name: " + vpath)
+			log.Printf("protocol: " + vtype)
+			log.Printf("port: " + strconv.Itoa(port))
+			log.Printf("path: " + value)
+			veeabus := Init()
+			err := veeabus.Expose(vpath, vtype, port, value)
+			if err != nil {
+				log.Fatalf("Error: %v\n", err)
+			}
+			Close(veeabus)
+		},
+	}
+	cmdExpose.Flags().StringVarP(&vpath, "name", "n", "", "service name")
+	cmdExpose.Flags().StringVarP(&vtype, "protocol", "s", "", "service protocol")
+	cmdExpose.Flags().IntVarP(&port, "port", "o", 80, "service port")
+	cmdExpose.Flags().StringVarP(&value, "path", "p", "", "service path")
 
 	var cmdPermission = &cobra.Command{
 		Use:   "permission",
@@ -500,7 +522,7 @@ func main() {
 	var methodCmd = &cobra.Command{Use: "method"}
 	methodCmd.AddCommand(cmdAddMethod, cmdCallMethod)
 
-	rootCmd.AddCommand(cmdDiscover, cmdPermission, nodeCmd, attCmd, methodCmd)
+	rootCmd.AddCommand(cmdDiscover, cmdExpose, cmdPermission, nodeCmd, attCmd, methodCmd)
 	rootCmd.Execute()
 
 }
