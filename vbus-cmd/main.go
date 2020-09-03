@@ -9,6 +9,7 @@ import (
 
 	vBus "bitbucket.org/vbus/vbus.go"
 	"github.com/jeremywohl/flatten"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
 
@@ -23,15 +24,27 @@ func main() {
 			"\n   vbus-cmd discover -f system.zigbee (flattened output)" +
 			"\n   vbus-cmd attribute get -t 10 system.zigbee.[...].1026.attributes.0" +
 			"\n   vbus-cmd method call -t 120 system.zigbee.boolangery-ThinkPad-P1-Gen-2.controller.scan 120",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{Name: "debug", Aliases: []string{"d"}, Value: false, Usage: "Show vBus library logs"},
+		},
+		Before: func(c *cli.Context) error {
+			if c.Bool("debug") {
+				vBus.SetLogLevel(logrus.DebugLevel)
+			} else {
+				vBus.SetLogLevel(logrus.FatalLevel)
+			}
+			return nil
+		},
 		Commands: []*cli.Command{
 			{
 				Name:    "discover",
 				Aliases: []string{"d"},
 				Usage:   "Discover elements on `PATH`",
 				Flags: []cli.Flag{
-					&cli.BoolFlag{Name: "flatten", Aliases: []string{"f"}},
-					&cli.BoolFlag{Name: "json", Aliases: []string{"j"}},
+					&cli.BoolFlag{Name: "flatten", Aliases: []string{"f"}, Usage: "Display output as a flattened list"},
+					&cli.BoolFlag{Name: "json", Aliases: []string{"j"}, Usage: "Display output as Json"},
 				},
+				ArgsUsage: "PATH",
 				Action: func(c *cli.Context) error {
 					conn := getConnection()
 					askPermission(c.Args().Get(0), conn)
@@ -69,6 +82,9 @@ func main() {
 						Name:    "set",
 						Aliases: []string{"s"},
 						Usage:   "Set `ATTR` `VALUE` (value is a Json string)",
+						Description: "PATH is a dot style vBus path"+
+							"\n	 VALUE is a Json value",
+						ArgsUsage: "PATH VALUE",
 						Action: func(c *cli.Context) error {
 							attr := getAttribute(c.Args().Get(0))
 							return attr.SetValue(jsonToGo(c.Args().Get(1)))
