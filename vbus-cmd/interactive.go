@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime/debug"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,128 +16,134 @@ import (
 	gocache "github.com/patrickmn/go-cache"
 )
 
+// cache used to store vBus element
 var cache *gocache.Cache
+var writer = NewAdvWriter()
 
 func init() {
 	cache = gocache.New(40*time.Second, 1*time.Minute)
 }
 
-func printBanner() {
-	writer := prompt.NewStdoutWriter()
-	writer.WriteRawStr("Welcome to ")
-	writer.SetColor(prompt.Cyan, prompt.DefaultColor, true)
-	writer.WriteRawStr("vBus-Cmd ")
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	writer.WriteRawStr("interactive ")
-	writer.SetColor(prompt.Yellow, prompt.DefaultColor, true)
-	writer.WriteRawStr("shell")
-	writer.SetColor(prompt.Blue, prompt.DefaultColor, true)
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	writer.WriteRawStr(" | Powered by ")
-	writer.SetColor(prompt.DarkRed, prompt.DefaultColor, false)
-	writer.WriteRawStr("Veea")
-	writer.WriteRawStr("\n")
+const (
+	shortcutColor = prompt.Purple
+	nodeColor     = prompt.Blue
+	attrColor     = prompt.Green
+	methColor     = prompt.Yellow
+)
 
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	writer.WriteRawStr("-------------------------------------------------------\n")
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Writer
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	shortcutColor := prompt.Purple
-	// Exit memo
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	writer.WriteRawStr("-   ")
-	writer.SetColor(prompt.LightGray, prompt.DefaultColor, false)
-	writer.WriteRawStr("Press ")
-	writer.SetColor(shortcutColor, prompt.DefaultColor, true)
-	writer.WriteRawStr("Ctrl+C")
-	writer.SetColor(prompt.LightGray, prompt.DefaultColor, false)
-	writer.WriteRawStr(" or ")
-	writer.SetColor(shortcutColor, prompt.DefaultColor, true)
-	writer.WriteRawStr("Ctrl+D")
-	writer.SetColor(prompt.LightGray, prompt.DefaultColor, false)
-	writer.WriteRawStr(" to exit")
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	writer.WriteRawStr("                    -\n")
+type AdvWriter struct {
+	writer prompt.ConsoleWriter
+}
 
-	// Navigate history
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	writer.WriteRawStr("-   ")
-	writer.SetColor(prompt.LightGray, prompt.DefaultColor, false)
-	writer.WriteRawStr("Navigate command history with ")
-	writer.SetColor(shortcutColor, prompt.DefaultColor, true)
-	writer.WriteRawStr("Up")
-	writer.SetColor(prompt.LightGray, prompt.DefaultColor, false)
-	writer.WriteRawStr(" or ")
-	writer.SetColor(shortcutColor, prompt.DefaultColor, true)
-	writer.WriteRawStr("Down")
-	writer.SetColor(prompt.LightGray, prompt.DefaultColor, false)
-	writer.WriteRawStr(" arrow")
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	writer.WriteRawStr("    -\n")
+func NewAdvWriter() *AdvWriter {
+	return &AdvWriter{
+		writer: prompt.NewStdoutWriter(),
+	}
+}
 
-	// Build path instruction
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	writer.WriteRawStr("-   ")
-	writer.SetColor(prompt.LightGray, prompt.DefaultColor, false)
-	writer.WriteRawStr("Build vBus path using ")
-	writer.SetColor(shortcutColor, prompt.DefaultColor, true)
-	writer.WriteRawStr("Shift")
-	writer.SetColor(prompt.LightGray, prompt.DefaultColor, false)
-	writer.WriteRawStr(" and ")
-	writer.SetColor(shortcutColor, prompt.DefaultColor, true)
-	writer.WriteRawStr("'.'")
-	writer.SetColor(prompt.LightGray, prompt.DefaultColor, false)
-	writer.WriteRawStr("")
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	writer.WriteRawStr("               -\n")
-	writer.WriteRawStr("-------------------------------------------------------\n")
+func (a *AdvWriter) Write(str string) {
+	a.writer.WriteRawStr(str)
+}
 
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	writer.WriteRawStr("\n")
-	_ = writer.Flush()
+func (a *AdvWriter) WriteBold(str string) {
+	a.WriteColorBold(str, prompt.DefaultColor)
+}
+
+func (a *AdvWriter) WriteSecondary(str string) {
+	a.WriteColorBold(str, prompt.LightGray)
+}
+
+func (a *AdvWriter) WriteLn(str string) {
+	a.writer.WriteRawStr(str + "\n")
+}
+
+func (a *AdvWriter) WriteColorBold(str string, fg prompt.Color) {
+	a.writer.SetColor(fg, prompt.DefaultColor, true)
+	a.writer.WriteRawStr(str)
+	a.writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
+}
+
+func (a *AdvWriter) WriteColor(str string, fg prompt.Color) {
+	a.writer.SetColor(fg, prompt.DefaultColor, false)
+	a.writer.WriteRawStr(str)
+	a.writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
 }
 
 // Print a note message
-func printNote(msg string) {
-	writer := prompt.NewStdoutWriter()
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	writer.WriteRawStr("Note: ")
-	writer.SetColor(prompt.Yellow, prompt.DefaultColor, false)
-	writer.WriteRawStr(msg)
-	writer.WriteRawStr("\n")
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	_ = writer.Flush()
+func (a *AdvWriter) WriteNote(msg string) {
+	a.Write("Note: ")
+	a.WriteColor(msg+"\n", prompt.Yellow)
+	a.Flush()
 }
 
-func printLog(msg string) {
-	writer := prompt.NewStdoutWriter()
-	writer.SetColor(prompt.DarkGray, prompt.DefaultColor, false)
-	writer.WriteRawStr(msg)
-	writer.WriteRawStr("\n")
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	_ = writer.Flush()
+func (a *AdvWriter) WriteBanner() {
+	a.Write("Welcome to ")
+	a.WriteColorBold("vBus-Cmd ", prompt.Cyan)
+	a.Write("interactive ")
+	a.WriteColorBold("shell", prompt.Yellow)
+	a.Write(" | Powered by ")
+	a.WriteColorBold("Veea\n", prompt.DarkRed)
+
+	// table
+	a.Write("-------------------------------------------------------\n")
+
+	// Exit memo
+	a.Write("-   ")
+	a.WriteSecondary("Press ")
+	a.WriteColorBold("Ctrl+C", shortcutColor)
+	a.WriteSecondary(" or ")
+	a.WriteColorBold("Ctrl+D", shortcutColor)
+	a.WriteSecondary(" to exit")
+	a.Write("                    -\n")
+
+	// Navigate history
+	a.Write("-   ")
+	a.WriteSecondary("Navigate command history with ")
+	a.WriteColorBold("Up", shortcutColor)
+	a.WriteSecondary(" or ")
+	a.WriteColorBold("Down", shortcutColor)
+	a.WriteSecondary(" arrow")
+	a.Write("    -\n")
+
+	// Build path instruction
+	a.Write("-   ")
+	a.WriteSecondary("Build vBus path using ")
+	a.WriteColorBold("Shift", shortcutColor)
+	a.WriteSecondary(" and ")
+	a.WriteColorBold("'.'", shortcutColor)
+	a.WriteSecondary("")
+	a.Write("               -\n")
+	a.Write("-------------------------------------------------------\n")
+
+	a.Flush()
+}
+
+func (a *AdvWriter) WriteLog(msg string) {
+	a.WriteColor(msg+"\n", prompt.DarkGray)
+	a.Flush()
 }
 
 // Print an error
-func printError(err error) {
-	writer := prompt.NewStdoutWriter()
-	writer.WriteRawStr("\n")
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	writer.WriteRawStr("Error: ")
-	writer.SetColor(prompt.Red, prompt.DefaultColor, false)
-	writer.WriteRawStr(err.Error())
-	writer.WriteRawStr("\n")
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	_ = writer.Flush()
+func (a *AdvWriter) WriteError(err error) {
+	a.Write("\nError: ")
+	a.WriteColor(err.Error()+"\n", prompt.Red)
+	a.Flush()
 }
 
-func printSuccess(msg string) {
-	writer := prompt.NewStdoutWriter()
-	writer.SetColor(prompt.Green, prompt.DefaultColor, false)
-	writer.WriteRawStr(msg)
-	writer.WriteRawStr("\n")
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	_ = writer.Flush()
+func (a *AdvWriter) WriteSuccess(msg string) {
+	a.WriteColor(msg+"\n", prompt.Green)
+	a.Flush()
 }
+
+func (a *AdvWriter) Flush() {
+	_ = a.writer.Flush()
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Create a simple text completer
 func simpleCompleter(suggest []prompt.Suggest) prompt.Completer {
@@ -144,27 +152,23 @@ func simpleCompleter(suggest []prompt.Suggest) prompt.Completer {
 	}
 }
 
+// Default input prompt options
 func getCommonOptions(opt ...prompt.Option) []prompt.Option {
 	opt = append(opt, prompt.OptionDescriptionBGColor(prompt.DarkGray),
-		prompt.OptionDescriptionTextColor(prompt.DefaultColor),
-		prompt.OptionDescriptionTextColor(prompt.Black),
-		prompt.OptionSelectedDescriptionTextColor(prompt.Black),
+		prompt.OptionDescriptionTextColor(prompt.White),
+		prompt.OptionSelectedDescriptionTextColor(prompt.White),
 		prompt.OptionSelectedDescriptionBGColor(prompt.LightGray),
 		prompt.OptionSuggestionBGColor(prompt.DarkGray),
 		prompt.OptionSelectedSuggestionBGColor(prompt.LightGray),
 		prompt.OptionSelectedDescriptionBGColor(prompt.DarkGray),
-		prompt.OptionSuggestionTextColor(prompt.Black),
+		prompt.OptionSuggestionTextColor(prompt.White),
 		prompt.OptionPrefix(">>> "),
 		prompt.OptionAddKeyBind(prompt.KeyBind{
 			Key: prompt.ControlC,
-			Fn: func(buffer *prompt.Buffer) {
-				os.Exit(0)
-			},
+			Fn:  exit,
 		}, prompt.KeyBind{
 			Key: prompt.ControlD,
-			Fn: func(buffer *prompt.Buffer) {
-				os.Exit(0)
-			},
+			Fn:  exit,
 		}))
 	return opt
 }
@@ -174,25 +178,11 @@ func promptInput(completer prompt.Completer, opt ...prompt.Option) string {
 	return prompt.Input(">>> ", completer, options...)
 }
 
-func suggestsContains(suggests []prompt.Suggest, suggest string) bool {
-	for _, a := range suggests {
-		if a.Text == suggest {
-			return true
-		}
-	}
-	return false
-}
-
 func startInteractiveDiscover(conn *vBus.Client) {
-	//moduleSuggests := []prompt.Suggest{
-	//	{Text: "back"},
-	//}
-	//defaultLen := len(suggests)
-
-	printLog("Searching running modules...")
+	writer.WriteLog("Searching running modules...")
 	modules, err := conn.DiscoverModules(1 * time.Second)
 	if err != nil {
-		printError(err)
+		writer.WriteError(err)
 		return
 	}
 
@@ -232,7 +222,7 @@ func startInteractiveDiscover(conn *vBus.Client) {
 				elem = e.(*vBus.UnknownProxy)
 			} else {
 				if e, err := conn.GetRemoteElement(parts...); err != nil {
-					printError(err)
+					writer.WriteError(err)
 				} else {
 					elem = e
 					cache.Set(strings.Join(parts, "."), e, gocache.DefaultExpiration)
@@ -247,28 +237,7 @@ func startInteractiveDiscover(conn *vBus.Client) {
 					}
 				}
 			}
-		} /*else {
-			if currentElement.IsNode() {
-				elemParts := parts[3:]
-
-				elem, err := currentElement.AsNode().GetElement(elemParts...)
-				if err != nil {
-					printError(err)
-				} else {
-					if elem.IsNode() {
-						for name, _ := range elem.AsNode().Elements() {
-							suggests = append(suggests, prompt.Suggest{Text: name})
-						}
-					}
-				}
-			}
-		}*/
-
-		/*if strings.HasSuffix(d.GetWordBeforeCursor(), ".") {
-			if len(parts) == 3 { // module level
-
-			}
-		}*/
+		}
 
 		// sort suggest to always return same result
 		sort.SliceStable(suggests, func(i, j int) bool {
@@ -277,6 +246,7 @@ func startInteractiveDiscover(conn *vBus.Client) {
 
 		return prompt.FilterHasPrefix(suggests, d.GetWordBeforeCursorUntilSeparator("."), true)
 	}
+
 	executor := func(s string) {
 		switch s {
 		case "back":
@@ -317,101 +287,77 @@ func countNodeElements(node *vBus.NodeProxy) (nodeCount int, attrCount int, meth
 }
 
 func printLocation(elem *vBus.UnknownProxy) {
-	writer := prompt.NewStdoutWriter()
 	if elem.IsNode() {
-		writer.SetColor(prompt.Blue, prompt.DefaultColor, true)
-		writer.WriteRawStr(elem.GetPath())
-		writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, true)
-		writer.WriteRawStr(" [node]\n")
+		writer.WriteColorBold(elem.GetPath(), nodeColor)
+		writer.WriteBold(" [node]\n")
 
 		nodeCount, attrCount, methCount := countNodeElements(elem.AsNode())
-		writer.SetColor(prompt.LightGray, prompt.DefaultColor, false)
-		writer.WriteRawStr("Contains ")
-		writer.SetColor(prompt.Blue, prompt.DefaultColor, true)
-		writer.WriteRawStr(fmt.Sprintf("%d ", nodeCount))
-		writer.SetColor(prompt.LightGray, prompt.DefaultColor, false)
-		writer.WriteRawStr("nodes, ")
+		writer.WriteSecondary("Contains ")
+		writer.WriteColorBold(fmt.Sprintf("%d ", nodeCount), nodeColor)
+		writer.WriteSecondary("nodes, ")
 
-		writer.SetColor(prompt.Green, prompt.DefaultColor, true)
-		writer.WriteRawStr(fmt.Sprintf("%d ", attrCount))
-		writer.SetColor(prompt.LightGray, prompt.DefaultColor, false)
-		writer.WriteRawStr("attributes, ")
+		writer.WriteColorBold(fmt.Sprintf("%d ", attrCount), attrColor)
+		writer.WriteSecondary("attributes, ")
 
-		writer.SetColor(prompt.Yellow, prompt.DefaultColor, true)
-		writer.WriteRawStr(fmt.Sprintf("%d ", methCount))
-		writer.SetColor(prompt.LightGray, prompt.DefaultColor, false)
-		writer.WriteRawStr("methods")
+		writer.WriteColorBold(fmt.Sprintf("%d ", methCount), methColor)
+		writer.WriteSecondary("methods")
 	} else if elem.IsMethod() {
-		writer.SetColor(prompt.Yellow, prompt.DefaultColor, true)
-		writer.WriteRawStr(elem.GetPath())
-		writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, true)
-		writer.WriteRawStr(" [method]\n")
+		writer.WriteColorBold(elem.GetPath(), methColor)
+		writer.WriteBold(" [method]\n")
 
 		method := elem.AsMethod()
 
-		writer.SetColor(prompt.LightGray, prompt.DefaultColor, false)
-		writer.WriteRawStr("Input params: \n")
-		printJsonSchema(method.ParamsSchema(), writer, "    ")
+		writer.WriteSecondary("Input params: \n")
+		printJsonSchema(method.ParamsSchema(), "    ")
 
-		writer.SetColor(prompt.LightGray, prompt.DefaultColor, false)
-		writer.WriteRawStr("Returns: \n")
-		printJsonSchema(method.ReturnsSchema(), writer, "    ")
+		writer.WriteSecondary("Returns: \n")
+		printJsonSchema(method.ReturnsSchema(), "    ")
 	} else {
-		writer.SetColor(prompt.Green, prompt.DefaultColor, true)
-		writer.WriteRawStr(elem.GetPath())
-		writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, true)
-		writer.WriteRawStr(" [attribute]\n")
+		writer.WriteColorBold(elem.GetPath(), attrColor)
+		writer.WriteBold(" [attribute]\n")
 
 		attr := elem.AsAttribute()
-		writer.SetColor(prompt.LightGray, prompt.DefaultColor, false)
-		writer.WriteRawStr("Current value: ")
-		writer.SetColor(prompt.Green, prompt.DefaultColor, true)
-		writer.WriteRawStr(fmt.Sprintf("%v", attr.Value()))
-		writer.WriteRawStr(" ")
-		printJsonSchema(attr.Schema(), writer, "")
+		writer.WriteSecondary("Current value: ")
+		writer.WriteColorBold(fmt.Sprintf("%v", attr.Value()), prompt.DarkGreen)
+		writer.Write(" ")
+		printJsonSchema(attr.Schema(), "")
 	}
-	writer.WriteRawStr("\n")
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-	_ = writer.Flush()
+	writer.Write("\n")
+	writer.Flush()
 }
 
-func printJsonSchema(schema vBus.JsonObj, writer prompt.ConsoleWriter, prefix string) {
+func printJsonSchema(schema vBus.JsonObj, prefix string) {
 	if hasKey(schema, "type") && hasKey(schema, "items") {
 		if getKey(schema, "type") == "array" {
 			items := getKey(schema, "items").(JsonArray)
 			for _, item := range items {
 				if hasKey(item, "title") {
-					writer.SetColor(prompt.DarkGreen, prompt.DefaultColor, false)
-					writer.WriteRawStr(prefix + getKey(item, "title").(string) + " ")
+					writer.WriteColor(prefix+getKey(item, "title").(string)+" ", prompt.DarkGreen)
 				} else {
-					writer.WriteRawStr(prefix)
+					writer.Write(prefix)
 				}
 
 				if hasKey(item, "type") {
-					writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, true)
-					writer.WriteRawStr("[" + getKey(item, "type").(string) + "]")
+					writer.WriteBold("[" + getKey(item, "type").(string) + "]")
 				}
 
 				if hasKey(item, "description") {
-					writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, false)
-					writer.WriteRawStr(" (" + getKey(item, "description").(string) + ")")
+					writer.Write(" (" + getKey(item, "description").(string) + ")")
 				}
 
-				writer.WriteRawStr("\n")
+				writer.Write("\n")
 			}
 
 			return
 		}
 	} else if hasKey(schema, "type") {
-		writer.WriteRawStr(prefix)
-		writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, true)
-		writer.WriteRawStr("[" + getKey(schema, "type").(string) + "]")
+		writer.Write(prefix)
+		writer.WriteBold("[" + getKey(schema, "type").(string) + "]")
 		return
 	}
 
 	// fallback
-	writer.SetColor(prompt.DefaultColor, prompt.DefaultColor, true)
-	writer.WriteRawStr(goToJson(schema) + "\n")
+	writer.WriteBold(goToJson(schema) + "\n")
 }
 
 func navigateNode(conn *vBus.Client, node *vBus.NodeProxy) {
@@ -434,7 +380,7 @@ func navigateNode(conn *vBus.Client, node *vBus.NodeProxy) {
 		case "back":
 			return
 		case "dump":
-			printSuccess(goToPrettyJson(node.Tree()))
+			writer.WriteSuccess(goToPrettyJson(node.Tree()))
 		case "list":
 			writer := prompt.NewStdoutWriter()
 			nodes := node.Nodes()
@@ -485,7 +431,9 @@ func navigateNode(conn *vBus.Client, node *vBus.NodeProxy) {
 
 			_ = writer.Flush()
 		default:
-			navigateElement(conn, elements[i])
+			if elem, ok := elements[i]; ok {
+				navigateElement(conn, elem)
+			}
 		}
 	}
 }
@@ -504,9 +452,9 @@ func navigateAttribute(conn *vBus.Client, attr *vBus.AttributeProxy) {
 			return
 		case "get":
 			if val, err := attr.ReadValue(); err != nil {
-				printError(err)
+				writer.WriteError(err)
 			} else {
-				printSuccess(fmt.Sprintf("%v", val))
+				writer.WriteSuccess(fmt.Sprintf("%v", val))
 			}
 		case "set":
 			return
@@ -528,51 +476,85 @@ func navigateMethod(conn *vBus.Client, method *vBus.MethodProxy) {
 	for {
 		fmt.Print("\n")
 		i := promptInput(func(d prompt.Document) []prompt.Suggest {
-			if d.Text == "" {
+			parts := strings.Split(strings.Trim(d.Text, " "), " ")
+			wordBefore := parts[len(parts)-1]
+
+			if wordBefore == "" {
 				return prompt.FilterHasPrefix([]prompt.Suggest{
 					{Text: "call", Description: "Followed by method params (Json)"},
 					{Text: "back", Description: "Go back"},
 				}, d.GetWordBeforeCursor(), true)
 			}
 
+			if wordBefore == "call" {
+				return []prompt.Suggest{
+					{Text: "-t", Description: "Timeout in seconds"},
+				}
+			}
+
+			if wordBefore == "-t" {
+				return []prompt.Suggest{
+					{Text: "5"},
+					{Text: "10"},
+					{Text: "60"},
+				}
+			}
+
 			return []prompt.Suggest{}
-		})
+		}, prompt.OptionCompletionWordSeparator(" "))
 
 		switch i {
 		case "back":
 			return
 		default:
-			paramsStr := strings.TrimPrefix(i, "call")
+			parts := strings.Split(i, " ")
+			if parts[0] == "call" {
+				timeout := 1 * time.Second
+				argOffset := 1
 
-			if strings.Trim(paramsStr, " ") == "" {
-				if val, err := method.Call(); err != nil {
-					printError(err)
-				} else {
-					printSuccess(goToJson(val))
+				if parts[1] == "-t" {
+					t, err := strconv.ParseInt(parts[2], 10, 0)
+					if err != nil {
+						writer.WriteError(err)
+						continue
+					} else {
+						timeout = time.Duration(t) * time.Second
+					}
+					argOffset = 3
 				}
-			}
 
-			args, err := jsonToGoErr(paramsStr)
-			if err != nil {
-				printError(err)
-				continue
-			}
+				paramsStr := strings.Join(parts[argOffset:], " ")
 
-			if _, ok := args.([]interface{}); !ok {
-				// try to wrap args as a json array
-				args, err = jsonToGoErr("[" + paramsStr + "]")
+				if strings.Trim(paramsStr, " ") == "" {
+					if val, err := method.CallWithTimeout(timeout); err != nil {
+						writer.WriteError(err)
+					} else {
+						writer.WriteSuccess(goToJson(val))
+					}
+				}
+
+				args, err := jsonToGoErr(paramsStr)
 				if err != nil {
-					printError(err)
+					writer.WriteError(err)
 					continue
 				}
-			}
-			if casted, ok := args.([]interface{}); !ok {
-				printError(errors.New("method args must be passed as a json array"))
-			} else {
-				if val, err := method.Call(casted...); err != nil {
-					printError(err)
+
+				if _, ok := args.([]interface{}); !ok {
+					// try to wrap args as a json array
+					args, err = jsonToGoErr("[" + paramsStr + "]")
+					if err != nil {
+						writer.WriteError(err)
+						continue
+					}
+				}
+				if casted, ok := args.([]interface{}); !ok {
+					writer.WriteError(errors.New("method args must be passed as a json array"))
 				} else {
-					printSuccess(goToJson(val))
+					if val, err := method.CallWithTimeout(timeout, casted...); err != nil {
+						writer.WriteError(err)
+					} else {
+						writer.WriteSuccess(goToJson(val))
+					}
 				}
 			}
 		}
@@ -594,42 +576,37 @@ func navigateElement(conn *vBus.Client, elem *vBus.UnknownProxy) {
 
 func discoverEnterLevel(conn *vBus.Client, path string) {
 	if elem, err := conn.GetRemoteElement(strings.Split(path, ".")...); err != nil {
-		printError(err)
+		writer.WriteError(err)
 	} else {
 		// navigate element
 		navigateElement(conn, elem)
 	}
 }
 
-func startCommandSession(conn *vBus.Client) {
-	/*for {
-		i := promptInput(simpleCompleter([]prompt.Suggest{
-			{Text: "discover", Description: "Discover vBus elements"},
-			{Text: "permission", Description: "Ask permission on vBus"},
-			{Text: "attribute", Description: "Manage a remote attribute"},
-			{Text: "method", Description: "Call a remote method"},
-			{Text: "debug", Description: "Enable vBus library log"},
-			{Text: "exit", Description: "Exit this shell"},
-		}))
+type Exit int
 
-		switch i {
-		case "discover":
-			startInteractiveDiscover(conn)
-		case "debug":
-			printNote("You can also enable log when starting the shell with -d")
-			vBus.SetLogLevel(logrus.TraceLevel)
-			printSuccess("Debug logs enabled")
-		case "exit":
-			return
-		}
-	}*/
-	startInteractiveDiscover(conn)
+func exit(_ *prompt.Buffer) {
+	panic(Exit(0))
+}
+
+func handleExit() {
+	switch v := recover().(type) {
+	case nil:
+		return
+	case Exit:
+		os.Exit(int(v))
+	default:
+		fmt.Println(v)
+		fmt.Println(string(debug.Stack()))
+	}
 }
 
 func startInteractivePrompt() {
-	printBanner()
+	defer handleExit()
+
+	writer.WriteBanner()
 	fmt.Println("Connecting to vBus, please wait...")
 	conn := getConnection()
 
-	startCommandSession(conn)
+	startInteractiveDiscover(conn)
 }
