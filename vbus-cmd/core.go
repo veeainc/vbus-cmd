@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 
 	vBus "bitbucket.org/vbus/vbus.go"
+	"github.com/jeremywohl/flatten"
 )
 
 // Get a new vBus connection.
@@ -91,4 +93,43 @@ func goToPrettyJson(val interface{}) string {
 		return string(b)
 	}
 	return ""
+}
+
+func traverseNode(node *vBus.NodeProxy, level int) {
+	for name, elem := range node.Elements() {
+		if elem.IsNode() {
+			n := elem.AsNode()
+			fmt.Printf("%s%s:\n", strings.Repeat(" ", level*2), name)
+			traverseNode(n, level+1)
+		} else if elem.IsAttribute() {
+			attr := elem.AsAttribute()
+			fmt.Printf("%s%s = %v\n", strings.Repeat(" ", level*2), name, attr.Value())
+		} else if elem.IsMethod() {
+			fmt.Printf("%s%s\n", strings.Repeat(" ", level*2), name)
+			fmt.Printf("  %sParams: %s\n", strings.Repeat(" ", level*2), goToJson(elem.Tree().(map[string]interface{})["params"].(map[string]interface{})["schema"]))
+		}
+	}
+}
+
+
+func dumpElement(elem *vBus.UnknownProxy) {
+	if elem.IsNode() {
+		traverseNode(elem.AsNode(), 0)
+	}
+}
+
+func dumpElementJson(elem *vBus.UnknownProxy) {
+	fmt.Println(goToPrettyJson(elem.Tree()))
+}
+
+func dumpElementFlattened(elem *vBus.UnknownProxy) {
+	if casted, ok := elem.Tree().(map[string]interface{}); ok {
+		flat, err := flatten.Flatten(casted, "", flatten.DotStyle)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for k, v := range flat {
+			fmt.Printf("%s %v\n", k, v)
+		}
+	}
 }
