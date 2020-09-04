@@ -95,10 +95,15 @@ func (a *AdvWriter) WriteBanner() {
 	a.Write("-   ")
 	a.WriteSecondary("Press ")
 	a.WriteColorBold("Ctrl+C", shortcutColor)
-	a.WriteSecondary(" or ")
-	a.WriteColorBold("Ctrl+D", shortcutColor)
 	a.WriteSecondary(" to exit")
-	a.Write("                    -\n")
+	a.Write("                              -\n")
+
+	// return memo
+	a.Write("-   ")
+	a.WriteSecondary("Press ")
+	a.WriteColorBold("Ctrl+D", shortcutColor)
+	a.WriteSecondary(" to go back")
+	a.Write("                           -\n")
 
 	// Navigate history
 	a.Write("-   ")
@@ -165,9 +170,6 @@ func getCommonOptions(opt ...prompt.Option) []prompt.Option {
 		prompt.OptionPrefix(">>> "),
 		prompt.OptionAddKeyBind(prompt.KeyBind{
 			Key: prompt.ControlC,
-			Fn:  exit,
-		}, prompt.KeyBind{
-			Key: prompt.ControlD,
 			Fn:  exit,
 		}))
 	return opt
@@ -249,6 +251,8 @@ func startInteractiveDiscover(conn *vBus.Client) {
 
 	executor := func(s string) {
 		switch s {
+		case "":
+			panic(Exit(0))
 		case "back":
 			return
 		default: // vBus path
@@ -366,7 +370,7 @@ func printJsonSchema(schema vBus.JsonObj, prefix string) {
 }
 
 func globalSubscribeAddReceiver(proxy *vBus.UnknownProxy, segments ...string) {
-	writer.WriteBold("[Notification]: ")
+	writer.WriteBold("[Notification][add]: ")
 	printPathType(proxy)
 	writer.WriteSecondary("Received value: ")
 	writer.WriteSuccess(goToJson(proxy.Tree()))
@@ -374,7 +378,7 @@ func globalSubscribeAddReceiver(proxy *vBus.UnknownProxy, segments ...string) {
 }
 
 func globalSubscribeDelReceiver(proxy *vBus.UnknownProxy, segments ...string) {
-	writer.WriteBold("[Notification]: ")
+	writer.WriteBold("[Notification][sel]: ")
 	printPathType(proxy)
 	writer.WriteSecondary("Received value: ")
 	writer.WriteSuccess(goToJson(proxy.Tree()))
@@ -382,7 +386,7 @@ func globalSubscribeDelReceiver(proxy *vBus.UnknownProxy, segments ...string) {
 }
 
 func globalSubscribeSetReceiver(proxy *vBus.UnknownProxy, segments ...string) {
-	writer.WriteBold("[Notification]: ")
+	writer.WriteBold("[Notification][set]: ")
 	printPathType(proxy)
 	writer.WriteSecondary("Received value: ")
 	writer.WriteSuccess(goToJson(proxy.Tree()))
@@ -420,6 +424,8 @@ func navigateNode(conn *vBus.Client, node *vBus.NodeProxy) {
 		})
 
 		switch i {
+		case "":
+			return
 		case "back":
 			return
 		case "dump":
@@ -538,6 +544,8 @@ func navigateAttribute(conn *vBus.Client, attr *vBus.AttributeProxy) {
 		})
 
 		switch i {
+		case "":
+			return
 		case "back":
 			return
 		case "get":
@@ -612,6 +620,8 @@ func navigateMethod(conn *vBus.Client, method *vBus.MethodProxy) {
 		}, prompt.OptionCompletionWordSeparator(" "))
 
 		switch i {
+		case "":
+			return
 		case "back":
 			return
 		default:
