@@ -21,7 +21,7 @@ var cache *gocache.Cache
 var writer = NewAdvWriter()
 
 func init() {
-	cache = gocache.New(40*time.Second, 1*time.Minute)
+	cache = gocache.New(20*time.Second, 1*time.Minute)
 }
 
 const (
@@ -123,7 +123,7 @@ func (a *AdvWriter) WriteBanner() {
 }
 
 func (a *AdvWriter) WriteLog(msg string) {
-	a.WriteColor(msg+"\n", prompt.DarkGray)
+	a.WriteColor(msg+"\n", prompt.LightGray)
 	a.Flush()
 }
 
@@ -286,11 +286,23 @@ func countNodeElements(node *vBus.NodeProxy) (nodeCount int, attrCount int, meth
 	return
 }
 
-func printLocation(elem *vBus.UnknownProxy) {
+func printPathType(elem *vBus.UnknownProxy) {
 	if elem.IsNode() {
 		writer.WriteColorBold(elem.GetPath(), nodeColor)
 		writer.WriteBold(" [node]\n")
+	} else if elem.IsMethod() {
+		writer.WriteColorBold(elem.GetPath(), methColor)
+		writer.WriteBold(" [method]\n")
+	} else {
+		writer.WriteColorBold(elem.GetPath(), attrColor)
+		writer.WriteBold(" [attribute]\n")
+	}
+	writer.Flush()
+}
 
+func printLocation(elem *vBus.UnknownProxy) {
+	printPathType(elem)
+	if elem.IsNode() {
 		nodeCount, attrCount, methCount := countNodeElements(elem.AsNode())
 		writer.WriteSecondary("Contains ")
 		writer.WriteColorBold(fmt.Sprintf("%d ", nodeCount), nodeColor)
@@ -302,20 +314,13 @@ func printLocation(elem *vBus.UnknownProxy) {
 		writer.WriteColorBold(fmt.Sprintf("%d ", methCount), methColor)
 		writer.WriteSecondary("methods")
 	} else if elem.IsMethod() {
-		writer.WriteColorBold(elem.GetPath(), methColor)
-		writer.WriteBold(" [method]\n")
-
 		method := elem.AsMethod()
-
 		writer.WriteSecondary("Input params: \n")
 		printJsonSchema(method.ParamsSchema(), "    ")
 
 		writer.WriteSecondary("Returns: \n")
 		printJsonSchema(method.ReturnsSchema(), "    ")
 	} else {
-		writer.WriteColorBold(elem.GetPath(), attrColor)
-		writer.WriteBold(" [attribute]\n")
-
 		attr := elem.AsAttribute()
 		writer.WriteSecondary("Current value: ")
 		writer.WriteColorBold(fmt.Sprintf("%v", attr.Value()), prompt.DarkGreen)
@@ -360,12 +365,37 @@ func printJsonSchema(schema vBus.JsonObj, prefix string) {
 	writer.WriteBold(goToJson(schema) + "\n")
 }
 
+func globalSubscribeAddReceiver(proxy *vBus.UnknownProxy, segments ...string) {
+	writer.WriteBold("[Notification]: ")
+	printPathType(proxy)
+	writer.WriteSecondary("Received value: ")
+	writer.WriteSuccess(goToJson(proxy.Tree()))
+	writer.Write("\n")
+}
+
+func globalSubscribeDelReceiver(proxy *vBus.UnknownProxy, segments ...string) {
+	writer.WriteBold("[Notification]: ")
+	printPathType(proxy)
+	writer.WriteSecondary("Received value: ")
+	writer.WriteSuccess(goToJson(proxy.Tree()))
+	writer.Write("\n")
+}
+
+func globalSubscribeSetReceiver(proxy *vBus.UnknownProxy, segments ...string) {
+	writer.WriteBold("[Notification]: ")
+	printPathType(proxy)
+	writer.WriteSecondary("Received value: ")
+	writer.WriteSuccess(goToJson(proxy.Tree()))
+	writer.Write("\n")
+}
+
 func navigateNode(conn *vBus.Client, node *vBus.NodeProxy) {
 	for {
 		elements := node.Elements()
 		var suggests []prompt.Suggest
 
 		suggests = append(suggests, prompt.Suggest{Text: "list", Description: "List first level elements"})
+		suggests = append(suggests, prompt.Suggest{Text: "subscribe", Description: "Subscribe to node change"})
 		suggests = append(suggests, prompt.Suggest{Text: "dump", Description: "Dump node content"})
 		suggests = append(suggests, prompt.Suggest{Text: "back", Description: "Go back"})
 
@@ -374,7 +404,20 @@ func navigateNode(conn *vBus.Client, node *vBus.NodeProxy) {
 		}
 
 		fmt.Print("\n")
-		i := promptInput(simpleCompleter(suggests))
+		i := promptInput(func(d prompt.Document) []prompt.Suggest {
+			parts := strings.Split(strings.Trim(d.Text, " "), " ")
+			wordBefore := parts[len(parts)-1]
+
+			if wordBefore == "subscribe" {
+				return prompt.FilterHasPrefix([]prompt.Suggest{
+					{Text: "all", Description: "Receive all notifications"},
+					{Text: "add", Description: "Receive 'add' notifications"},
+					{Text: "del", Description: "Receive 'del' notifications"},
+				}, d.GetWordBeforeCursor(), true)
+			}
+
+			return prompt.FilterHasPrefix(suggests, d.GetWordBeforeCursor(), true)
+		})
 
 		switch i {
 		case "back":
@@ -431,8 +474,43 @@ func navigateNode(conn *vBus.Client, node *vBus.NodeProxy) {
 
 			_ = writer.Flush()
 		default:
-			if elem, ok := elements[i]; ok {
-				navigateElement(conn, elem)
+			if strings.HasPrefix(i, "subscribe") {
+				parts := strings.Split(i, " ")
+				if len(parts) < 2 {
+					writer.WriteError(errors.New("missing notification type"))
+				} else {
+					doAdd := func() {
+						err := node.SubscribeAdd(globalSubscribeAddReceiver)
+						if err != nil {
+							writer.WriteError(err)
+						} else {
+							writer.WriteSuccess("Listening 'add' notifications")
+						}
+					}
+
+					doDel := func() {
+						err := node.SubscribeDel(globalSubscribeDelReceiver)
+						if err != nil {
+							writer.WriteError(err)
+						} else {
+							writer.WriteSuccess("Listening 'del' notifications")
+						}
+					}
+
+					switch parts[1] {
+					case "add":
+						doAdd()
+					case "del":
+						doDel()
+					case "all":
+						doAdd()
+						doDel()
+					}
+				}
+			} else {
+				if elem, ok := elements[i]; ok {
+					navigateElement(conn, elem)
+				}
 			}
 		}
 	}
@@ -441,11 +519,23 @@ func navigateNode(conn *vBus.Client, node *vBus.NodeProxy) {
 func navigateAttribute(conn *vBus.Client, attr *vBus.AttributeProxy) {
 	for {
 		fmt.Print("\n")
-		i := promptInput(simpleCompleter([]prompt.Suggest{
-			{Text: "get", Description: "Get attribute value"},
-			{Text: "set", Description: "Set attribute value"},
-			{Text: "back", Description: "Go back"},
-		}))
+		i := promptInput(func(d prompt.Document) []prompt.Suggest {
+			parts := strings.Split(strings.Trim(d.Text, " "), " ")
+			wordBefore := parts[len(parts)-1]
+
+			if wordBefore == "subscribe" {
+				return prompt.FilterHasPrefix([]prompt.Suggest{
+					{Text: "set", Description: "Receive 'set' notification"},
+				}, d.GetWordBeforeCursor(), true)
+			}
+
+			return prompt.FilterHasPrefix([]prompt.Suggest{
+				{Text: "back", Description: "Go back"},
+				{Text: "get", Description: "Get attribute value"},
+				{Text: "set", Description: "Set attribute value"},
+				{Text: "subscribe", Description: "Subscribe to"},
+			}, d.GetWordBeforeCursor(), true)
+		})
 
 		switch i {
 		case "back":
@@ -458,6 +548,24 @@ func navigateAttribute(conn *vBus.Client, attr *vBus.AttributeProxy) {
 			}
 		case "set":
 			return
+
+		default:
+			if strings.HasPrefix(i, "subscribe") {
+				parts := strings.Split(i, " ")
+				if len(parts) < 2 {
+					writer.WriteError(errors.New("missing notification type"))
+				} else {
+					switch parts[1] {
+					case "set":
+						err := attr.SubscribeSet(globalSubscribeSetReceiver)
+						if err != nil {
+							writer.WriteError(err)
+						} else {
+							writer.WriteSuccess("Listening 'set' notifications")
+						}
+					}
+				}
+			}
 		}
 	}
 }
