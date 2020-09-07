@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -48,6 +49,9 @@ func getNode(path string, conn *vBus.Client) *vBus.UnknownProxy {
 
 // Get a remote attribute.
 func askPermission(path string, conn *vBus.Client) {
+	if badSubject(path) {
+		log.Fatal(errors.New("invalid vBus path: " + path))
+	}
 	if success, err := conn.AskPermission(path); err != nil {
 		log.Fatal(err.Error())
 	} else {
@@ -55,13 +59,6 @@ func askPermission(path string, conn *vBus.Client) {
 			log.Fatal("cannot get permission: ", path)
 		}
 	}
-}
-
-// Auto ask permission on the two first segments.
-func autoAskPermission(path string, conn *vBus.Client) {
-	parts := strings.Split(path, ".")
-	permPath := strings.Join(parts[:2], ".")
-	askPermission(permPath+".>", conn)
 }
 
 // Get a remote method.

@@ -13,7 +13,15 @@ import (
 )
 
 func main() {
-	var conn *vBus.Client
+	var lasy_conn *vBus.Client
+
+	// lazily get vBus connection
+	getConn := func() *vBus.Client {
+		if lasy_conn == nil {
+			lasy_conn = getConnection()
+		}
+		return lasy_conn
+	}
 
 	app := &cli.App{
 		Name:  "vbus-cmd",
@@ -37,13 +45,15 @@ func main() {
 				vBus.SetLogLevel(logrus.FatalLevel)
 			}
 
-			conn = getConnection()
-
 			for _, perm := range c.StringSlice("permission") {
+				conn := getConn()
 				askPermission(perm, conn)
 			}
 
 			if c.Bool("interactive") {
+				if lasy_conn != nil {
+					lasy_conn.Close()
+				}
 				startInteractivePrompt()
 				os.Exit(0)
 			}
@@ -60,7 +70,11 @@ func main() {
 				},
 				ArgsUsage: "PATH",
 				Action: func(c *cli.Context) error {
+					if c.Args().Len() != 1 {
+						return errors.New("'discover' exactly one PATH argument")
+					}
 
+					conn := getConn()
 					askPermission(c.Args().Get(0), conn)
 					if elem, err := conn.Discover(c.Args().Get(0), 2*time.Second); err != nil {
 						return err
@@ -83,16 +97,17 @@ func main() {
 				Usage:   "Send a command on a remote node ",
 				Subcommands: []*cli.Command{
 					{
-						Name:    "get",
-						Aliases: []string{"s"},
-						Usage:   "Get node on `PATH`",
+						Name:        "get",
+						Aliases:     []string{"s"},
+						Usage:       "Get node on `PATH`",
 						Description: "PATH is a dot style vBus path",
-						ArgsUsage: "PATH",
+						ArgsUsage:   "PATH",
 						Action: func(c *cli.Context) error {
 							if c.Args().Len() != 1 {
-								return errors.New("expect exactly one PATH argument")
+								return errors.New("'get' expect exactly one PATH argument")
 							}
 
+							conn := getConn()
 							node := getNode(c.Args().Get(0), conn)
 							dumpElementJson(node)
 							return nil
@@ -109,10 +124,11 @@ func main() {
 						Name:    "set",
 						Aliases: []string{"s"},
 						Usage:   "Set `ATTR` `VALUE` (value is a Json string)",
-						Description: "PATH is a dot style vBus path"+
+						Description: "PATH is a dot style vBus path" +
 							"\n	 VALUE is a Json value",
 						ArgsUsage: "PATH VALUE",
 						Action: func(c *cli.Context) error {
+							conn := getConn()
 							attr := getAttribute(c.Args().Get(0), conn)
 							return attr.SetValue(jsonToGo(c.Args().Get(1)))
 						},
@@ -125,6 +141,7 @@ func main() {
 							&cli.IntFlag{Name: "timeout", Aliases: []string{"t"}, Value: 1},
 						},
 						Action: func(c *cli.Context) error {
+							conn := getConn()
 							attr := getAttribute(c.Args().Get(0), conn)
 							if val, err := attr.ReadValueWithTimeout(time.Duration(c.Int("timeout")) * time.Second); err != nil {
 								return err
