@@ -13,14 +13,16 @@ import (
 )
 
 func main() {
-	var lasy_conn *vBus.Client
+	var lasyConn *vBus.Client
+	domain := "system"
+	appName := "vbus-cmd"
 
 	// lazily get vBus connection
 	getConn := func() *vBus.Client {
-		if lasy_conn == nil {
-			lasy_conn = getConnection()
+		if lasyConn == nil {
+			lasyConn = getConnection(domain, appName)
 		}
-		return lasy_conn
+		return lasyConn
 	}
 
 	app := &cli.App{
@@ -37,6 +39,8 @@ func main() {
 			&cli.BoolFlag{Name: "debug", Aliases: []string{"d"}, Value: false, Usage: "Show vBus library logs"},
 			&cli.BoolFlag{Name: "interactive", Aliases: []string{"i"}, Value: false, Usage: "Start an interactive prompt"},
 			&cli.StringSliceFlag{Name: "permission", Aliases: []string{"p"}, Usage: "Ask a permission before running the command"},
+			&cli.StringFlag{Name: "domain", Usage: "Change domain name", Value: domain},
+			&cli.StringFlag{Name: "app", Usage: "Change app name", Value: appName},
 		},
 		Before: func(c *cli.Context) error {
 			if c.Bool("debug") {
@@ -45,14 +49,22 @@ func main() {
 				vBus.SetLogLevel(logrus.FatalLevel)
 			}
 
+			if c.String("domain") != "" {
+				domain = c.String("domain")
+			}
+
+			if c.String("app") != "" {
+				appName = c.String("app")
+			}
+
 			for _, perm := range c.StringSlice("permission") {
 				conn := getConn()
 				askPermission(perm, conn)
 			}
 
 			if c.Bool("interactive") {
-				if lasy_conn != nil {
-					lasy_conn.Close()
+				if lasyConn != nil {
+					lasyConn.Close()
 				}
 				startInteractivePrompt()
 				os.Exit(0)
@@ -166,7 +178,8 @@ func main() {
 							&cli.IntFlag{Name: "timeout", Aliases: []string{"t"}, Value: 1},
 						},
 						Action: func(c *cli.Context) error {
-							attr := getMethod(c.Args().Get(0))
+							conn := getConn()
+							attr := getMethod(c.Args().Get(0), conn)
 							args := jsonToGo(c.Args().Get(1))
 
 							if _, ok := args.([]interface{}); !ok {

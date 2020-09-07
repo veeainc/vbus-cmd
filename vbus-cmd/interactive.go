@@ -724,7 +724,7 @@ func startInteractivePrompt() {
 
 	writer.WriteBanner()
 	fmt.Println("Connecting to vBus, please wait...")
-	conn := getConnection()
+	conn := getConnection("system", "vbus-cmd")
 
 	startInteractiveDiscover(conn)
 }

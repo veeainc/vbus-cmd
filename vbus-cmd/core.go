@@ -12,8 +12,8 @@ import (
 )
 
 // Get a new vBus connection.
-func getConnection() *vBus.Client {
-	conn := vBus.NewClient("system", "vbus-cmd")
+func getConnection(domain, appName string) *vBus.Client {
+	conn := vBus.NewClient(domain, appName)
 	if err := conn.Connect(); err != nil {
 		log.Fatal(err.Error())
 	}
@@ -62,8 +62,7 @@ func askPermission(path string, conn *vBus.Client) {
 }
 
 // Get a remote method.
-func getMethod(path string) *vBus.MethodProxy {
-	conn := getConnection()
+func getMethod(path string, conn *vBus.Client) *vBus.MethodProxy {
 	path = sanitizePath(path, conn)
 	if meth, err := conn.GetRemoteMethod(path); err != nil {
 		log.Fatal(err.Error())
