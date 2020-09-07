@@ -37,6 +37,19 @@ func getAttribute(path string) *vBus.AttributeProxy {
 	return nil
 }
 
+// Get a remote node.
+func getNode(path string) *vBus.UnknownProxy {
+	conn := getConnection()
+	path = sanitizePath(path, conn)
+	autoAskPermission(path, conn)
+	if attr, err := conn.GetRemoteElement(path); err != nil {
+		log.Fatal(err.Error())
+	} else {
+		return attr
+	}
+	return nil
+}
+
 // Get a remote attribute.
 func askPermission(path string, conn *vBus.Client) {
 	if success, err := conn.AskPermission(path); err != nil {
@@ -52,7 +65,7 @@ func askPermission(path string, conn *vBus.Client) {
 func autoAskPermission(path string, conn *vBus.Client) {
 	parts := strings.Split(path, ".")
 	permPath := strings.Join(parts[:2], ".")
-	askPermission(permPath + ".>", conn)
+	askPermission(permPath+".>", conn)
 }
 
 // Get a remote method.
@@ -110,7 +123,6 @@ func traverseNode(node *vBus.NodeProxy, level int) {
 		}
 	}
 }
-
 
 func dumpElement(elem *vBus.UnknownProxy) {
 	if elem.IsNode() {

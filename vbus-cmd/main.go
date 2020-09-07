@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -65,6 +66,29 @@ func main() {
 
 						return nil
 					}
+				},
+			},
+			{
+				Name:    "node",
+				Aliases: []string{"n"},
+				Usage:   "Send a command on a remote node ",
+				Subcommands: []*cli.Command{
+					{
+						Name:    "get",
+						Aliases: []string{"s"},
+						Usage:   "Get node on `PATH`",
+						Description: "PATH is a dot style vBus path",
+						ArgsUsage: "PATH",
+						Action: func(c *cli.Context) error {
+							if c.Args().Len() != 1 {
+								return errors.New("expect exaclty one PATH argument")
+							}
+
+							node := getNode(c.Args().Get(0))
+							dumpElement(node)
+							return nil
+						},
+					},
 				},
 			},
 			{
