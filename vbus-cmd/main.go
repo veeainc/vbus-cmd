@@ -13,6 +13,8 @@ import (
 )
 
 func main() {
+	var conn *vBus.Client
+
 	app := &cli.App{
 		Name:  "vbus-cmd",
 		Usage: "send vbus commands",
@@ -26,12 +28,19 @@ func main() {
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: "debug", Aliases: []string{"d"}, Value: false, Usage: "Show vBus library logs"},
 			&cli.BoolFlag{Name: "interactive", Aliases: []string{"i"}, Value: false, Usage: "Start an interactive prompt"},
+			&cli.StringSliceFlag{Name: "permission", Aliases: []string{"p"}, Usage: "Ask a permission before running the command"},
 		},
 		Before: func(c *cli.Context) error {
 			if c.Bool("debug") {
 				vBus.SetLogLevel(logrus.DebugLevel)
 			} else {
 				vBus.SetLogLevel(logrus.FatalLevel)
+			}
+
+			conn = getConnection()
+
+			for _, perm := range c.StringSlice("permission") {
+				askPermission(perm, conn)
 			}
 
 			if c.Bool("interactive") {
@@ -47,21 +56,21 @@ func main() {
 				Usage:   "Discover elements on `PATH`",
 				Flags: []cli.Flag{
 					&cli.BoolFlag{Name: "flatten", Aliases: []string{"f"}, Usage: "Display output as a flattened list"},
-					&cli.BoolFlag{Name: "json", Aliases: []string{"j"}, Usage: "Display output as Json"},
+					&cli.BoolFlag{Name: "list", Aliases: []string{"l"}, Usage: "Display output as a key value list"},
 				},
 				ArgsUsage: "PATH",
 				Action: func(c *cli.Context) error {
-					conn := getConnection()
+
 					askPermission(c.Args().Get(0), conn)
 					if elem, err := conn.Discover(c.Args().Get(0), 2*time.Second); err != nil {
 						return err
 					} else {
 						if c.Bool("flatten") {
 							dumpElementFlattened(elem)
-						} else if c.Bool("json") {
-							dumpElementJson(elem)
-						} else {
+						} else if c.Bool("list") {
 							dumpElement(elem)
+						} else {
+							dumpElementJson(elem)
 						}
 
 						return nil
@@ -81,11 +90,11 @@ func main() {
 						ArgsUsage: "PATH",
 						Action: func(c *cli.Context) error {
 							if c.Args().Len() != 1 {
-								return errors.New("expect exaclty one PATH argument")
+								return errors.New("expect exactly one PATH argument")
 							}
 
-							node := getNode(c.Args().Get(0))
-							dumpElement(node)
+							node := getNode(c.Args().Get(0), conn)
+							dumpElementJson(node)
 							return nil
 						},
 					},
@@ -104,7 +113,7 @@ func main() {
 							"\n	 VALUE is a Json value",
 						ArgsUsage: "PATH VALUE",
 						Action: func(c *cli.Context) error {
-							attr := getAttribute(c.Args().Get(0))
+							attr := getAttribute(c.Args().Get(0), conn)
 							return attr.SetValue(jsonToGo(c.Args().Get(1)))
 						},
 					},
@@ -116,7 +125,7 @@ func main() {
 							&cli.IntFlag{Name: "timeout", Aliases: []string{"t"}, Value: 1},
 						},
 						Action: func(c *cli.Context) error {
-							attr := getAttribute(c.Args().Get(0))
+							attr := getAttribute(c.Args().Get(0), conn)
 							if val, err := attr.ReadValueWithTimeout(time.Duration(c.Int("timeout")) * time.Second); err != nil {
 								return err
 							} else {

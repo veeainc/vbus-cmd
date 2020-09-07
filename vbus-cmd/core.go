@@ -21,14 +21,12 @@ func getConnection() *vBus.Client {
 
 // Replace `local` keyword by vBus hostname.
 func sanitizePath(path string, conn *vBus.Client) string {
-	return strings.Replace(path, ".local.", conn.GetHostname(), 1)
+	return strings.Replace(path, ".local.", "." + conn.GetHostname() + ".", 1)
 }
 
 // Get a remote attribute.
-func getAttribute(path string) *vBus.AttributeProxy {
-	conn := getConnection()
+func getAttribute(path string, conn *vBus.Client) *vBus.AttributeProxy {
 	path = sanitizePath(path, conn)
-	autoAskPermission(path, conn)
 	if attr, err := conn.GetRemoteAttr(path); err != nil {
 		log.Fatal(err.Error())
 	} else {
@@ -38,10 +36,8 @@ func getAttribute(path string) *vBus.AttributeProxy {
 }
 
 // Get a remote node.
-func getNode(path string) *vBus.UnknownProxy {
-	conn := getConnection()
+func getNode(path string, conn *vBus.Client) *vBus.UnknownProxy {
 	path = sanitizePath(path, conn)
-	autoAskPermission(path, conn)
 	if attr, err := conn.GetRemoteElement(path); err != nil {
 		log.Fatal(err.Error())
 	} else {
