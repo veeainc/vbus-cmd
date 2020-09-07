@@ -3,8 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	vBus "bitbucket.org/vbus/vbus.go"
@@ -34,7 +36,9 @@ func main() {
 			"\n   vbus-cmd discover -j system.zigbee (json output)" +
 			"\n   vbus-cmd discover -f system.zigbee (flattened output)" +
 			"\n   vbus-cmd attribute get -t 10 system.zigbee.[...].1026.attributes.0" +
-			"\n   vbus-cmd method call -t 120 system.zigbee.boolangery-ThinkPad-P1-Gen-2.controller.scan 120",
+			"\n   vbus-cmd method call -t 120 system.zigbee.boolangery-ThinkPad-P1-Gen-2.controller.scan 120" +
+			"\n   vbus-cmd --app=foobar node add config \"{\\\"service_ip\\\":\\\"192.168.1.88\\\"}\"" +
+			"\n   vbus-cmd -p \"system.foobar.>\" attribute get system.foobar.local.config.service_ip",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: "debug", Aliases: []string{"d"}, Value: false, Usage: "Show vBus library logs"},
 			&cli.BoolFlag{Name: "interactive", Aliases: []string{"i"}, Value: false, Usage: "Start an interactive prompt"},
@@ -122,6 +126,62 @@ func main() {
 							conn := getConn()
 							node := getNode(c.Args().Get(0), conn)
 							dumpElementJson(node)
+							return nil
+						},
+					}, {
+						Name:        "add",
+						Aliases:     []string{"s"},
+						Usage:       "Add a node with UUID`",
+						Description: "UUID is a vBus path segment, it will be appended to <domain>.<app>.local",
+						ArgsUsage:   "UUID",
+						Flags: []cli.Flag{
+							&cli.StringFlag{Name: "file", Aliases: []string{"f"}, Usage: "Get input from a file"},
+						},
+						Action: func(c *cli.Context) error {
+							// validate args
+							if c.String("file") != "" {
+								if c.Args().Len() < 1 {
+									return errors.New("'add' expect an UUID")
+								}
+							} else {
+								if c.Args().Len() < 2 {
+									return errors.New("'add' expect an UUID and a Json value for the node")
+								}
+							}
+
+							// get args
+							uuid := c.Args().Get(0)
+							input := ""
+							if c.String("file") != "" {
+								buf, err := ioutil.ReadFile(c.String("file"))
+								if err != nil {
+									log.Fatal(err.Error())
+								}
+								input = string(buf)
+							} else {
+								input = strings.Join(c.Args().Slice()[1:], "")
+							}
+
+							// validate uuid
+							if strings.Contains(uuid, ".") {
+								log.Fatal("Not a valid node uuid: " + uuid)
+							}
+
+							// validate tree
+							tree := jsonToGo(input)
+
+							// create vBus raw node
+							rawNode := jsonObjToRawDef(tree)
+
+							conn := getConn()
+							_, err := conn.AddNode(uuid, rawNode)
+							if err != nil {
+								log.Fatal(err.Error())
+							}
+
+							log.Println("node successfully created, waiting for Ctrl+C")
+
+							waitForCtrlC()
 							return nil
 						},
 					},

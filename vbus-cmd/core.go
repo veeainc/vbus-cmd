@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 
 	vBus "bitbucket.org/vbus/vbus.go"
@@ -22,7 +23,7 @@ func getConnection(domain, appName string) *vBus.Client {
 
 // Replace `local` keyword by vBus hostname.
 func sanitizePath(path string, conn *vBus.Client) string {
-	return strings.Replace(path, ".local.", "." + conn.GetHostname() + ".", 1)
+	return strings.Replace(path, ".local.", "."+conn.GetHostname()+".", 1)
 }
 
 // Get a remote attribute.
@@ -136,4 +137,32 @@ func dumpElementFlattened(elem *vBus.UnknownProxy) {
 			fmt.Printf("%s %v\n", k, v)
 		}
 	}
+}
+
+func isMap(v interface{}) bool {
+	return reflect.TypeOf(v).Kind() == reflect.Map
+}
+
+func jsonObjToRawDef(tree vBus.JsonAny) vBus.RawNode {
+	if _, ok := tree.(vBus.JsonObj); !ok {
+		log.Fatal("Not a valid Json object")
+	}
+	obj := tree.(vBus.JsonObj)
+
+	if !vBus.IsNode(obj) {
+		log.Fatal("Your root object must be a vBus node")
+	}
+
+	rawNode := vBus.RawNode{}
+	for k, v := range obj {
+		if isMap(v) {
+			rawNode[k] = vBus.NewNodeDef(jsonObjToRawDef(v))
+		} else if vBus.IsNode(v) {
+			rawNode[k] = vBus.NewAttributeDef(k, v)
+		} else {
+			log.Fatal("Only attribute and node are supported")
+		}
+	}
+
+	return rawNode
 }

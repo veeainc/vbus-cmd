@@ -2,7 +2,10 @@ package main
 
 import (
 	vBus "bitbucket.org/vbus/vbus.go"
+	"os"
+	"os/signal"
 	"strings"
+	"sync"
 )
 
 
@@ -40,4 +43,17 @@ func badSubject(subj string) bool {
 		}
 	}
 	return false
+}
+
+func waitForCtrlC() {
+	var endWaiter sync.WaitGroup
+	endWaiter.Add(1)
+	var signalChannel chan os.Signal
+	signalChannel = make(chan os.Signal, 1)
+	signal.Notify(signalChannel, os.Interrupt)
+	go func() {
+		<-signalChannel
+		endWaiter.Done()
+	}()
+	endWaiter.Wait()
 }

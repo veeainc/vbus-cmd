@@ -13,3 +13,5 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/urfave/cli/v2 v2.2.0
 )
+
+replace bitbucket.org/vbus/vbus.go => ../../vbus.go
