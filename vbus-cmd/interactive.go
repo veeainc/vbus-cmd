@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"runtime/debug"
 	"sort"
@@ -19,9 +20,44 @@ import (
 // cache used to store vBus element
 var cache *gocache.Cache
 var writer = NewAdvWriter()
+var hubIpAddress string
+var hubSerial string
+var lazyConn *vBus.Client
 
 func init() {
 	cache = gocache.New(20*time.Second, 1*time.Minute)
+}
+
+func getInteractiveConnection() (*vBus.Client, error) {
+	if lazyConn != nil {
+		return lazyConn, nil
+	}
+
+	writer.WriteLog("Connecting to vBus, please wait...")
+	if hubIpAddress != "" {
+		_ = os.Setenv("VBUS_URL", "nats://"+hubIpAddress+":21400")
+	}
+
+	conn := vBus.NewClient("system", "vbus-cmd")
+
+	if hubSerial != "" {
+		if err := conn.Connect(vBus.HubId(hubSerial)); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := conn.Connect(); err != nil {
+			return nil, err
+		}
+	}
+	lazyConn = conn
+
+	if conf, err := conn.GetConfig(); err == nil && conf != nil {
+		writer.WriteSuccess("Connected to " + conf.Vbus.Hostname + " on " + conf.Vbus.Url)
+	} else {
+		writer.WriteSuccess("Connected !")
+	}
+
+	return lazyConn, nil
 }
 
 const (
@@ -180,7 +216,12 @@ func promptInput(completer prompt.Completer, opt ...prompt.Option) string {
 	return prompt.Input(">>> ", completer, options...)
 }
 
-func startInteractiveDiscover(conn *vBus.Client) {
+func startInteractiveDiscover() {
+	conn, err := getInteractiveConnection()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
 	writer.WriteLog("Searching running modules...")
 	modules, err := conn.DiscoverModules(1 * time.Second)
 	if err != nil {
@@ -201,6 +242,8 @@ func startInteractiveDiscover(conn *vBus.Client) {
 			for _, mod := range modules {
 				suggests = append(suggests, prompt.Suggest{Text: mod.Id})
 			}
+
+			suggests = append(suggests, prompt.Suggest{Text: "back", Description: "Go back"})
 		}
 
 		// module id level
@@ -719,12 +762,47 @@ func handleExit() {
 	}
 }
 
+func promptConnectionParams() {
+	writer.Write("Enter hub")
+	writer.WriteColor(" ip address", prompt.Yellow)
+	writer.WriteLn(":")
+	writer.Flush()
+	hubIpAddress = promptInput(simpleCompleter([]prompt.Suggest{}))
+
+	writer.Write("Enter hub")
+	writer.WriteColor(" serial number ", prompt.Yellow)
+	writer.WriteLn("(this is needed by the permission system):")
+	writer.Flush()
+	hubSerial = promptInput(simpleCompleter([]prompt.Suggest{}))
+
+	_, err := getInteractiveConnection()
+	if err != nil {
+		writer.WriteError(err)
+	}
+}
+
+func promptMainActions() {
+	for {
+		i := promptInput(simpleCompleter([]prompt.Suggest{
+			{Text: "introspect", Description: "Introspect vBus tree"},
+			{Text: "connect to remote", Description: "Connect to remote"},
+			{Text: "back", Description: "Go back"},
+		}))
+
+		switch i {
+		case "":
+		case "back":
+			return
+		case "introspect":
+			startInteractiveDiscover()
+		case "connect to remote":
+			promptConnectionParams()
+		}
+	}
+}
+
 func startInteractivePrompt() {
 	defer handleExit()
-
 	writer.WriteBanner()
-	fmt.Println("Connecting to vBus, please wait...")
-	conn := getConnection("system", "vbus-cmd")
-
-	startInteractiveDiscover(conn)
+	promptMainActions()
 }
