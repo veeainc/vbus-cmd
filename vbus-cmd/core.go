@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/tidwall/pretty"
 	"log"
 	"reflect"
 	"strings"
@@ -92,11 +93,12 @@ func goToJson(val interface{}) string {
 	return ""
 }
 
+// return a colored json string
 func goToPrettyJson(val interface{}) string {
 	if b, err := json.MarshalIndent(val, "", "    "); err != nil {
 		log.Fatal(err)
 	} else {
-		return string(b)
+		return string(pretty.Color(b, nil))
 	}
 	return ""
 }
