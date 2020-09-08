@@ -23,7 +23,7 @@ This is the vBus command line interface.
        discover, d   Discover elements on `PATH`
        node, n       Send a command on a remote node 
        attribute, a  Send a command on a remote attribute 
-       method, a     Send a command on a remote method
+       method, m     Send a command on a remote method
        help, h       Shows a list of commands or help for one command
     
     GLOBAL OPTIONS:

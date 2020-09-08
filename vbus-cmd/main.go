@@ -227,7 +227,7 @@ func main() {
 			},
 			{
 				Name:    "method",
-				Aliases: []string{"a"},
+				Aliases: []string{"m"},
 				Usage:   "Send a command on a remote method",
 				Subcommands: []*cli.Command{
 					{
