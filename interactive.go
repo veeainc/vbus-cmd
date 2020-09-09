@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"runtime/debug"
 	"sort"
@@ -90,7 +89,7 @@ func (a *AdvWriter) WriteBold(str string) {
 }
 
 func (a *AdvWriter) WriteSecondary(str string) {
-	a.WriteColorBold(str, prompt.LightGray)
+	a.WriteColor(str, prompt.DefaultColor)
 }
 
 func (a *AdvWriter) WriteLn(str string) {
@@ -117,11 +116,11 @@ func (a *AdvWriter) WriteNote(msg string) {
 }
 
 func (a *AdvWriter) WriteBanner() {
-	a.Write("Welcome to ")
+	a.WriteBold("Welcome to ")
 	a.WriteColorBold("vBus-Cmd ", prompt.Cyan)
-	a.Write("interactive ")
-	a.WriteColorBold("shell", prompt.Yellow)
-	a.Write(" | Powered by ")
+	a.WriteBold("interactive ")
+	a.WriteBold("shell")
+	a.WriteBold(" | Powered by ")
 	a.WriteColorBold("Veea\n", prompt.DarkRed)
 
 	// table
@@ -164,7 +163,7 @@ func (a *AdvWriter) WriteBanner() {
 }
 
 func (a *AdvWriter) WriteLog(msg string) {
-	a.WriteColor(msg+"\n", prompt.LightGray)
+	a.WriteColor(msg+"\n", prompt.DarkGray)
 	a.Flush()
 }
 
@@ -176,7 +175,7 @@ func (a *AdvWriter) WriteError(err error) {
 }
 
 func (a *AdvWriter) WriteSuccess(msg string) {
-	a.WriteColor(msg+"\n", prompt.Green)
+	a.WriteColor(msg+"\n", prompt.DarkGreen)
 	a.Flush()
 }
 
@@ -201,6 +200,9 @@ func getCommonOptions(opt ...prompt.Option) []prompt.Option {
 		prompt.OptionSelectedDescriptionBGColor(prompt.LightGray),
 		prompt.OptionSuggestionBGColor(prompt.DarkGray),
 		prompt.OptionSelectedSuggestionBGColor(prompt.LightGray),
+		prompt.OptionSelectedSuggestionTextColor(prompt.Blue),
+		prompt.OptionInputTextColor(prompt.Blue),
+		prompt.OptionPreviewSuggestionTextColor(prompt.DarkBlue),
 		prompt.OptionSelectedDescriptionBGColor(prompt.DarkGray),
 		prompt.OptionSuggestionTextColor(prompt.White),
 		prompt.OptionPrefix(">>> "),
@@ -219,7 +221,8 @@ func promptInput(completer prompt.Completer, opt ...prompt.Option) string {
 func startInteractiveDiscover() {
 	conn, err := getInteractiveConnection()
 	if err != nil {
-		log.Fatal(err.Error())
+		writer.WriteError(err)
+		return
 	}
 
 	writer.WriteLog("Searching running modules...")
