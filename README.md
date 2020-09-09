@@ -41,6 +41,6 @@ This is the vBus command line interface.
 
 The interactive mode allows you to introspect the vbus tree:
 
-![introspect mode](docs/images/screenshot-1.png)
+![introspect mode](_docs/images/screenshot-1.png)
 
-![alt text](docs/images/screenshot-2.png)
+![alt text](_docs/images/screenshot-2.png)
