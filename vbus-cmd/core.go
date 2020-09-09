@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/tidwall/pretty"
 	"log"
-	"reflect"
 	"strings"
 
 	vBus "bitbucket.org/vbus/vbus.go"
@@ -49,7 +48,7 @@ func getNode(path string, conn *vBus.Client) *vBus.UnknownProxy {
 	return nil
 }
 
-// Get a remote attribute.
+// Ask vBus permission.
 func askPermission(path string, conn *vBus.Client) {
 	if badSubject(path) {
 		log.Fatal(errors.New("invalid vBus path: " + path))
@@ -74,6 +73,7 @@ func getMethod(path string, conn *vBus.Client) *vBus.MethodProxy {
 	return nil
 }
 
+// Parse Json string to Go and abort in case of error.
 func jsonToGo(arg string) interface{} {
 	b := []byte(arg)
 	var m interface{}
@@ -84,6 +84,7 @@ func jsonToGo(arg string) interface{} {
 	return m
 }
 
+// Dump Go to Json and abort in case of error.
 func goToJson(val interface{}) string {
 	if b, err := json.Marshal(val); err != nil {
 		log.Fatal(err)
@@ -93,7 +94,7 @@ func goToJson(val interface{}) string {
 	return ""
 }
 
-// return a colored json string
+// Return a colored json string
 func goToPrettyJson(val interface{}) string {
 	if b, err := json.MarshalIndent(val, "", "    "); err != nil {
 		log.Fatal(err)
@@ -141,10 +142,7 @@ func dumpElementFlattened(elem *vBus.UnknownProxy) {
 	}
 }
 
-func isMap(v interface{}) bool {
-	return reflect.TypeOf(v).Kind() == reflect.Map
-}
-
+// Try to convert a Json obj to a vBus raw node.
 func jsonObjToRawDef(tree vBus.JsonAny) vBus.RawNode {
 	if _, ok := tree.(vBus.JsonObj); !ok {
 		log.Fatal("Not a valid Json object")

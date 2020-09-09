@@ -15,16 +15,16 @@ import (
 )
 
 func main() {
-	var lasyConn *vBus.Client
+	var vbusConn *vBus.Client
 	domain := "system"
 	appName := "vbus-cmd"
 
-	// lazily get vBus connection
+	// get vBus connection instance
 	getConn := func() *vBus.Client {
-		if lasyConn == nil {
-			lasyConn = getConnection(domain, appName)
+		if vbusConn == nil {
+			vbusConn = getConnection(domain, appName)
 		}
-		return lasyConn
+		return vbusConn
 	}
 
 	app := &cli.App{
@@ -47,6 +47,7 @@ func main() {
 			&cli.StringFlag{Name: "app", Usage: "Change app name", Value: appName},
 		},
 		Before: func(c *cli.Context) error {
+			// debug mode
 			if c.Bool("debug") {
 				vBus.SetLogLevel(logrus.DebugLevel)
 			} else {
@@ -67,8 +68,8 @@ func main() {
 			}
 
 			if c.Bool("interactive") {
-				if lasyConn != nil {
-					lasyConn.Close()
+				if vbusConn != nil {
+					vbusConn.Close()
 				}
 				startInteractivePrompt()
 				os.Exit(0)

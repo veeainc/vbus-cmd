@@ -17,20 +17,20 @@ import (
 	gocache "github.com/patrickmn/go-cache"
 )
 
-// cache used to store vBus element
-var cache *gocache.Cache
+var cache *gocache.Cache // cache used to store vBus element
 var writer = NewAdvWriter()
 var hubIpAddress string
 var hubSerial string
-var lazyConn *vBus.Client
+var vbusConn *vBus.Client
 
 func init() {
 	cache = gocache.New(20*time.Second, 1*time.Minute)
 }
 
+// Get interactive shell vBus connection.
 func getInteractiveConnection() (*vBus.Client, error) {
-	if lazyConn != nil {
-		return lazyConn, nil
+	if vbusConn != nil {
+		return vbusConn, nil
 	}
 
 	writer.WriteLog("Connecting to vBus, please wait...")
@@ -49,7 +49,7 @@ func getInteractiveConnection() (*vBus.Client, error) {
 			return nil, err
 		}
 	}
-	lazyConn = conn
+	vbusConn = conn
 
 	if conf, err := conn.GetConfig(); err == nil && conf != nil {
 		writer.WriteSuccess("Connected to " + conf.Vbus.Hostname + " on " + conf.Vbus.Url)
@@ -57,7 +57,7 @@ func getInteractiveConnection() (*vBus.Client, error) {
 		writer.WriteSuccess("Connected !")
 	}
 
-	return lazyConn, nil
+	return vbusConn, nil
 }
 
 const (

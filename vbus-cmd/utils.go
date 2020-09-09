@@ -4,6 +4,7 @@ import (
 	vBus "bitbucket.org/vbus/vbus.go"
 	"os"
 	"os/signal"
+	"reflect"
 	"strings"
 	"sync"
 )
@@ -56,4 +57,9 @@ func waitForCtrlC() {
 		endWaiter.Done()
 	}()
 	endWaiter.Wait()
+}
+
+
+func isMap(v interface{}) bool {
+	return reflect.TypeOf(v).Kind() == reflect.Map
 }
