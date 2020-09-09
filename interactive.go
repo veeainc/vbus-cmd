@@ -226,6 +226,7 @@ func startInteractiveDiscover() {
 	}
 
 	writer.WriteLog("Searching running modules...")
+	writer.WriteLog("Ctrl+D to go back")
 	modules, err := conn.DiscoverModules(1 * time.Second)
 	if err != nil {
 		writer.WriteError(err)
@@ -245,8 +246,6 @@ func startInteractiveDiscover() {
 			for _, mod := range modules {
 				suggests = append(suggests, prompt.Suggest{Text: mod.Id})
 			}
-
-			suggests = append(suggests, prompt.Suggest{Text: "back", Description: "Go back"})
 		}
 
 		// module id level
@@ -297,20 +296,13 @@ func startInteractiveDiscover() {
 
 	executor := func(s string) {
 		switch s {
-		case "":
-			panic(Exit(0))
-		case "back":
-			return
 		default: // vBus path
 			discoverEnterLevel(conn, s)
 		}
 	}
 
 	rootPrompt := prompt.New(executor, completer, getCommonOptions(prompt.OptionCompletionWordSeparator("."))...)
-
-	for {
-		rootPrompt.Run()
-	}
+	rootPrompt.Run()
 }
 
 func getElementDescription(elem *vBus.UnknownProxy) string {
@@ -771,12 +763,18 @@ func promptConnectionParams() {
 	writer.WriteLn(":")
 	writer.Flush()
 	hubIpAddress = promptInput(simpleCompleter([]prompt.Suggest{}))
+	if hubIpAddress == "" {
+		return
+	}
 
 	writer.Write("Enter hub")
 	writer.WriteColor(" serial number ", prompt.Yellow)
 	writer.WriteLn("(this is needed by the permission system):")
 	writer.Flush()
 	hubSerial = promptInput(simpleCompleter([]prompt.Suggest{}))
+	if hubSerial == "" {
+		return
+	}
 
 	_, err := getInteractiveConnection()
 	if err != nil {
@@ -784,11 +782,32 @@ func promptConnectionParams() {
 	}
 }
 
+func promptPermission() {
+	conn, err := getInteractiveConnection()
+	if err != nil {
+		writer.WriteError(err)
+	}
+
+	writer.WriteLn("Enter permission string:")
+	writer.Flush()
+	permission := promptInput(simpleCompleter([]prompt.Suggest{}))
+	if permission == "" {
+		return
+	}
+
+	ok, err := conn.AskPermission(permission)
+	if err != nil {
+		writer.WriteError(err)
+	}
+	writer.WriteSuccess(fmt.Sprintf("%v", ok))
+}
+
 func promptMainActions() {
 	for {
 		i := promptInput(simpleCompleter([]prompt.Suggest{
 			{Text: "introspect", Description: "Introspect vBus tree"},
-			{Text: "connect to remote", Description: "Connect to remote"},
+			{Text: "connect", Description: "Connect to remote Hub"},
+			{Text: "permission", Description: "Ask a permission"},
 			{Text: "back", Description: "Go back"},
 		}))
 
@@ -798,8 +817,8 @@ func promptMainActions() {
 			return
 		case "introspect":
 			startInteractiveDiscover()
-		case "connect to remote":
-			promptConnectionParams()
+		case "permission":
+			promptPermission()
 		}
 	}
 }
