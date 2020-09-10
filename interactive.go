@@ -376,7 +376,14 @@ func printLocation(elem *vBus.UnknownProxy) {
 func printJsonSchema(schema vBus.JsonObj, prefix string) {
 	if hasKey(schema, "type") && hasKey(schema, "items") {
 		if getKey(schema, "type") == "array" {
-			items := getKey(schema, "items").(JsonArray)
+			s := getKey(schema, "items")
+			if s == nil {
+				writer.Write(prefix)
+				writer.WriteBold("[null]\n")
+				return
+			}
+
+			items :=s.(JsonArray)
 			for _, item := range items {
 				if hasKey(item, "title") {
 					writer.WriteColor(prefix+getKey(item, "title").(string)+" ", prompt.DarkGreen)
@@ -592,9 +599,6 @@ func navigateAttribute(conn *vBus.Client, attr *vBus.AttributeProxy) {
 			} else {
 				writer.WriteSuccess(fmt.Sprintf("%v", val))
 			}
-		case "set":
-			return
-
 		default:
 			if strings.HasPrefix(i, "subscribe") {
 				parts := strings.Split(i, " ")
@@ -610,6 +614,21 @@ func navigateAttribute(conn *vBus.Client, attr *vBus.AttributeProxy) {
 							writer.WriteSuccess("Listening 'set' notifications")
 						}
 					}
+				}
+			} else if strings.HasPrefix(i, "set") {
+				parts := strings.Split(i, " ")
+				if len(parts) < 2 {
+					writer.WriteError(errors.New("missing attribute value"))
+				}
+				valueStr := strings.Join(parts[1:], " ")
+				value, err := jsonToGoErr(valueStr)
+				if err != nil {
+					writer.WriteError(err)
+					continue
+				}
+				err = attr.SetValue(value)
+				if err != nil {
+					writer.WriteError(err)
 				}
 			}
 		}

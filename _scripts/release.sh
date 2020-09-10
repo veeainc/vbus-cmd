@@ -6,7 +6,6 @@ mv ../linux-x64-vbus-cmd .
 ( cd .. ; env GOOS=linux GOARCH=arm64 go build -o elf-linux-arm64-vbus-cmd -ldflags "-s -w")
 mv ../elf-linux-arm64-vbus-cmd .
 
-
 ( cd .. ; env GOOS=linux GOARCH=arm go build -o elf-linux-arm-vbus-cmd -ldflags "-s -w")
 mv ../elf-linux-arm-vbus-cmd .
 
