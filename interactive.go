@@ -687,7 +687,7 @@ func navigateMethod(conn *vBus.Client, method *vBus.MethodProxy) {
 				timeout := 1 * time.Second
 				argOffset := 1
 
-				if parts[1] == "-t" {
+				if len(parts) > 1 && parts[1] == "-t" {
 					t, err := strconv.ParseInt(parts[2], 10, 0)
 					if err != nil {
 						writer.WriteError(err)
