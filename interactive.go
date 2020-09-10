@@ -163,7 +163,7 @@ func (a *AdvWriter) WriteBanner() {
 }
 
 func (a *AdvWriter) WriteLog(msg string) {
-	a.WriteColor(msg+"\n", prompt.DarkGray)
+	a.WriteColor(msg+"\n", prompt.DefaultColor)
 	a.Flush()
 }
 
@@ -200,7 +200,7 @@ func getCommonOptions(opt ...prompt.Option) []prompt.Option {
 		prompt.OptionSelectedDescriptionBGColor(prompt.LightGray),
 		prompt.OptionSuggestionBGColor(prompt.DarkGray),
 		prompt.OptionSelectedSuggestionBGColor(prompt.LightGray),
-		prompt.OptionSelectedSuggestionTextColor(prompt.Blue),
+		prompt.OptionSelectedSuggestionTextColor(prompt.Black),
 		prompt.OptionInputTextColor(prompt.Blue),
 		prompt.OptionPreviewSuggestionTextColor(prompt.DarkBlue),
 		prompt.OptionSelectedDescriptionBGColor(prompt.DarkGray),
@@ -704,8 +704,9 @@ func navigateMethod(conn *vBus.Client, method *vBus.MethodProxy) {
 					if val, err := method.CallWithTimeout(timeout); err != nil {
 						writer.WriteError(err)
 					} else {
-						writer.WriteSuccess(goToJson(val))
+						writer.WriteSuccess("Return value: " + goToJson(val))
 					}
+					continue
 				}
 
 				args, err := jsonToGoErr(paramsStr)
