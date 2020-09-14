@@ -1,4 +1,4 @@
-module bitbucket.org/vbus/vbus-cmd
+module github.com/veeainc/vbus-cmd
 
 go 1.13
 
