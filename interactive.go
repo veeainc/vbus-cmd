@@ -839,6 +839,8 @@ func promptMainActions() {
 			startInteractiveDiscover()
 		case "permission":
 			promptPermission()
+		case "connect":
+			promptConnectionParams()
 		}
 	}
 }
