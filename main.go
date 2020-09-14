@@ -29,7 +29,7 @@ func main() {
 
 	app := &cli.App{
 		Name:  "vbus-cmd",
-		Usage: "send vbus commands",
+		Usage: "send vbus commands (" + version + ")",
 		UsageText: "vbus-cmd [global options] command [command options] [arguments...]" +
 			"\n\n   Examples:" +
 			"\n   vbus-cmd discover system.zigbee" +
@@ -260,6 +260,15 @@ func main() {
 							return nil
 						},
 					},
+				},
+			},
+			{
+				Name:    "version",
+				Aliases: []string{"v"},
+				Usage:   "Display version number",
+				Action: func(context *cli.Context) error {
+					fmt.Println(version)
+					return nil
 				},
 			},
 		},
