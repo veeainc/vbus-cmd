@@ -10,6 +10,7 @@ else
     sed -i 's/\([[:blank:]]version = "\)[^"]*"/\1'"$version"'"/' ../version.go
 
     echo "comitting changes"
+    git add ../version.go
     git commit -m "version $version"
 
     echo "tagging git repository "
