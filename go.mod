@@ -3,7 +3,7 @@ module github.com/veeainc/vbus-cmd
 go 1.13
 
 require (
-	bitbucket.org/vbus/vbus.go v1.3.1-0.20200916082008-182a6db8f030
+	bitbucket.org/vbus/vbus.go v1.3.1-0.20200916082707-86b3dac2787e
 	github.com/c-bata/go-prompt v0.2.3
 	github.com/jeremywohl/flatten v1.0.1
 	github.com/mattn/go-runewidth v0.0.9 // indirect
@@ -15,5 +15,3 @@ require (
 	github.com/tidwall/pretty v1.0.2
 	github.com/urfave/cli/v2 v2.2.0
 )
-
-replace bitbucket.org/vbus/vbus.go => ../vbus.go
