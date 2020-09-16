@@ -39,8 +39,9 @@ func main() {
 			"\n   vbus-cmd attribute get -t 10 system.zigbee.[...].1026.attributes.0" +
 			"\n   vbus-cmd method call -t 120 system.zigbee.boolangery-ThinkPad-P1-Gen-2.controller.scan 120" +
 			"\n   vbus-cmd --app=foobar node add config \"{\\\"service_ip\\\":\\\"192.168.1.88\\\"}\"" +
-			"\n   vbus-cmd -p \"system.foobar.>\" attribute get system.foobar.local.config.service_ip",
-		Description: "This command line tool allow you to run vBus commands. When running for the first time, a configuration" +
+			"\n   vbus-cmd -p \"system.foobar.>\" attribute get system.foobar.local.config.service_ip" +
+			"\n   vbus-cmd --domain=mydomain --app=myapp expose --name=redis --protocol=redis --port=6379",
+		Description: "This command line tool allow you to run vBus commands. When running for the first time, a configuration\n" +
 			" file will be created in $HOME or $VBUS_PATH env. variable. So you need to have write access to this folder.\n" +
 			"\nENV. VARIABLES:" +
 			"\n   VBUS_PATH: the config path used to store the config file (optional)" +
