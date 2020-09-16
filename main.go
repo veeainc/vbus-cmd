@@ -1,17 +1,16 @@
 package main
 
 import (
-	"errors"
+	vBus "bitbucket.org/vbus/vbus.go"
 	"fmt"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"time"
-
-	vBus "bitbucket.org/vbus/vbus.go"
-	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -39,6 +38,11 @@ func main() {
 			"\n   vbus-cmd method call -t 120 system.zigbee.boolangery-ThinkPad-P1-Gen-2.controller.scan 120" +
 			"\n   vbus-cmd --app=foobar node add config \"{\\\"service_ip\\\":\\\"192.168.1.88\\\"}\"" +
 			"\n   vbus-cmd -p \"system.foobar.>\" attribute get system.foobar.local.config.service_ip",
+		Description: "This command line tool allow you to run vBus commands. When running for the first time, a configuration" +
+			" file will be created in $HOME or $VBUS_PATH env. variable. So you need to have write access to this folder.\n" +
+			"\nENV. VARIABLES:" +
+			"\n   VBUS_PATH: the config path used to store the config file (optional)" +
+			"\n   VBUS_URL: direct nats server url (optional)",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: "debug", Aliases: []string{"d"}, Value: false, Usage: "Show vBus library logs"},
 			&cli.BoolFlag{Name: "interactive", Aliases: []string{"i"}, Value: false, Usage: "Start an interactive prompt"},
