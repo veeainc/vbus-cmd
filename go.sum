@@ -1,5 +1,7 @@
 bitbucket.org/vbus/vbus.go v1.3.1-0.20200914084718-cfbab0cfaead h1:Z/z5qAwSqob+Zj21iKYflrOSq0tXV2255MNdeCGwwRc=
 bitbucket.org/vbus/vbus.go v1.3.1-0.20200914084718-cfbab0cfaead/go.mod h1:JAOWsr38U3FZgPN+0C2b0U10cHEcW1SgmIfpp4XITrY=
+bitbucket.org/vbus/vbus.go v1.3.1-0.20200916082008-182a6db8f030 h1:d9y99fT7mfmaTfINqs9IiFLWk1yfAMYFPxrZo7THgjw=
+bitbucket.org/vbus/vbus.go v1.3.1-0.20200916082008-182a6db8f030/go.mod h1:JAOWsr38U3FZgPN+0C2b0U10cHEcW1SgmIfpp4XITrY=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/alecthomas/jsonschema v0.0.0-20200127222324-dd4542c1f589 h1:Ev3H/smEOziBuJdLm7J4JI6baieXE8RVMNBejT/hq3Q=
 github.com/alecthomas/jsonschema v0.0.0-20200127222324-dd4542c1f589/go.mod h1:/n6+1/DWPltRLWL/VKyUxg6tzsl5kHUCcraimt4vr60=

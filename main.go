@@ -180,7 +180,7 @@ func main() {
 								log.Fatal(err.Error())
 							}
 
-							log.Println("node successfully created, waiting for Ctrl+C")
+							log.Println("node successfully created, do not close this app (exit with Ctrl+C)")
 
 							waitForCtrlC()
 							return nil
@@ -263,6 +263,31 @@ func main() {
 				},
 			},
 			{
+				Name:    "expose",
+				Aliases: []string{"e"},
+				Usage:   "Expose a service URI",
+				Description: "It will expose an URI constructed with values from options.\n" +
+					"   Public Ip address is retrieved automatically.\n\n" +
+					"   Generated URI will look like: <protocol>://<ip>:<port>/<path>",
+				Flags: []cli.Flag{
+					&cli.StringFlag{Name: "name", Aliases: []string{"n"}, Usage: "Service name", Required: true},
+					&cli.StringFlag{Name: "protocol", Aliases: []string{"p"}, Usage: "Protocol scheme (http, tcp, mqtt...)", Required: true},
+					&cli.IntFlag{Name: "port", Aliases: []string{"o"}, Usage: "Port number", Required: true},
+					&cli.StringFlag{Name: "path", Aliases: []string{"a"}, Usage: "Optional path appended to service uri", Value: ""},
+				},
+				Action: func(c *cli.Context) error {
+					conn := getConn()
+					if err := conn.Expose(c.String("name"), c.String("protocol"), c.Int("port"), c.String("path")); err != nil {
+						return err
+					}
+
+					log.Println("exposing service, do not close this app (exit with Ctrl+C)")
+
+					waitForCtrlC()
+					return nil
+				},
+			},
+			{
 				Name:    "version",
 				Aliases: []string{"v"},
 				Usage:   "Display version number",
@@ -274,6 +299,7 @@ func main() {
 		},
 	}
 
+	app.EnableBashCompletion = true
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
