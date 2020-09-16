@@ -37,7 +37,7 @@ func getInteractiveConnection() (*vBus.Client, error) {
 		_ = os.Setenv("VBUS_URL", "nats://"+hubIpAddress+":21400")
 	}
 
-	conn := vBus.NewClient("system", "vbus-cmd")
+	conn := vBus.NewClient(domain, appName)
 
 	if hubSerial != "" {
 		if err := conn.Connect(vBus.HubId(hubSerial)); err != nil {

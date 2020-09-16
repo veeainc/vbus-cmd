@@ -13,10 +13,12 @@ import (
 	"time"
 )
 
+// default module name, can be overrided with option
+var domain = "system"
+var appName = "vbus-cmd"
+
 func main() {
 	var vbusConn *vBus.Client
-	domain := "system"
-	appName := "vbus-cmd"
 
 	// get vBus connection instance
 	getConn := func() *vBus.Client {
@@ -47,8 +49,8 @@ func main() {
 			&cli.BoolFlag{Name: "debug", Aliases: []string{"d"}, Value: false, Usage: "Show vBus library logs"},
 			&cli.BoolFlag{Name: "interactive", Aliases: []string{"i"}, Value: false, Usage: "Start an interactive prompt"},
 			&cli.StringSliceFlag{Name: "permission", Aliases: []string{"p"}, Usage: "Ask a permission before running the command"},
-			&cli.StringFlag{Name: "domain", Usage: "Change domain name", Value: domain},
-			&cli.StringFlag{Name: "app", Usage: "Change app name", Value: appName},
+			&cli.StringFlag{Name: "domain", Usage: "Change domain name", Value: domain, Destination: &domain},
+			&cli.StringFlag{Name: "app", Usage: "Change app name", Value: appName, Destination: &appName},
 		},
 		Before: func(c *cli.Context) error {
 			// debug mode
@@ -56,14 +58,6 @@ func main() {
 				vBus.SetLogLevel(logrus.DebugLevel)
 			} else {
 				vBus.SetLogLevel(logrus.FatalLevel)
-			}
-
-			if c.String("domain") != "" {
-				domain = c.String("domain")
-			}
-
-			if c.String("app") != "" {
-				appName = c.String("app")
 			}
 
 			for _, perm := range c.StringSlice("permission") {
