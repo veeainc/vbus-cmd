@@ -63,3 +63,12 @@ func waitForCtrlC() {
 func isMap(v interface{}) bool {
 	return reflect.TypeOf(v).Kind() == reflect.Map
 }
+
+// Check if output device is a terminal.
+func isTty() bool {
+	if fileInfo, _ := os.Stdout.Stat(); (fileInfo.Mode() & os.ModeCharDevice) != 0 {
+		return true
+	} else {
+		return false
+	}
+}

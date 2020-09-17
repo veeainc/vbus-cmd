@@ -21,7 +21,7 @@ This is the vBus command line interface.
     
     DESCRIPTION:
        This command line tool allow you to run vBus commands. When running for the first time, a configuration
-     file will be created in $HOME or $VBUS_PATH env. variable. So you need to have write access to this folder.
+       file will be created in $HOME or $VBUS_PATH env. variable. So you need to have write access to this folder.
     
     ENV. VARIABLES:
        VBUS_PATH: the config path used to store the config file (optional)

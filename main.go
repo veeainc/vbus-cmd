@@ -42,7 +42,7 @@ func main() {
 			"\n   vbus-cmd -p \"system.foobar.>\" attribute get system.foobar.local.config.service_ip" +
 			"\n   vbus-cmd --domain=mydomain --app=myapp expose --name=redis --protocol=redis --port=6379",
 		Description: "This command line tool allow you to run vBus commands. When running for the first time, a configuration\n" +
-			" file will be created in $HOME or $VBUS_PATH env. variable. So you need to have write access to this folder.\n" +
+			"   file will be created in $HOME or $VBUS_PATH env. variable. So you need to have write access to this folder.\n" +
 			"\nENV. VARIABLES:" +
 			"\n   VBUS_PATH: the config path used to store the config file (optional)" +
 			"\n   VBUS_URL: direct nats server url (optional)",
@@ -100,7 +100,7 @@ func main() {
 						} else if c.Bool("list") {
 							dumpElement(elem)
 						} else {
-							dumpElementJson(elem)
+							dumpElementToColoredJson(elem)
 						}
 
 						return nil
@@ -125,7 +125,7 @@ func main() {
 
 							conn := getConn()
 							node := getNode(c.Args().Get(0), conn)
-							dumpElementJson(node)
+							dumpElementToColoredJson(node)
 							return nil
 						},
 					}, {

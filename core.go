@@ -94,12 +94,16 @@ func goToJson(val interface{}) string {
 	return ""
 }
 
-// Return a colored json string
-func goToPrettyJson(val interface{}) string {
+// Return a colored json string if the output device is a terminal.
+// Its annoying to return colored sequence char when piping.
+func goToPrettyColoredJson(val interface{}) string {
 	if b, err := json.MarshalIndent(val, "", "    "); err != nil {
 		log.Fatal(err)
 	} else {
-		return string(pretty.Color(b, nil))
+		if isTty() {
+			return string(pretty.Color(b, nil))
+		}
+		return string(b)
 	}
 	return ""
 }
@@ -126,8 +130,8 @@ func dumpElement(elem *vBus.UnknownProxy) {
 	}
 }
 
-func dumpElementJson(elem *vBus.UnknownProxy) {
-	fmt.Println(goToPrettyJson(elem.Tree()))
+func dumpElementToColoredJson(elem *vBus.UnknownProxy) {
+	fmt.Println(goToPrettyColoredJson(elem.Tree()))
 }
 
 func dumpElementFlattened(elem *vBus.UnknownProxy) {

@@ -474,7 +474,7 @@ func navigateNode(conn *vBus.Client, node *vBus.NodeProxy) {
 		case "back":
 			return
 		case "dump":
-			writer.WriteSuccess(string(goToPrettyJson(node.Tree())))
+			writer.WriteSuccess(string(goToPrettyColoredJson(node.Tree())))
 		case "list":
 			writer := prompt.NewStdoutWriter()
 			nodes := node.Nodes()
