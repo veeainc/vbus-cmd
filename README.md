@@ -45,6 +45,101 @@ This is the vBus command line interface.
        --help, -h                    show help (default: false)
 
 
+By default (when not using --domain and --app), vbus-cmd will register on vBus with this app name: `system.vbus-cmd`
+
+---
+**NOTE**
+
+When accessing vBus elements, you need to ask permission before (-p). This is may be the reason why you get
+a timeout error.
+
+---
+
+
+## Commands
+
+### discover
+
+    $ vbus-cmd discover system.zigbee
+    {
+        [...]
+    }
+
+You will get a `null` response if not elements found.
+
+### node add
+
+    $ vbus-cmd --domain=com --app=info node add foo "{\"data\":42}"
+
+It will create a vBus module exposing the provided node.
+
+You can also provide a json file:
+
+node.json
+```json
+{
+	"volume": 80,
+	"device": {
+		"name": "/dev/audio"
+	}
+}
+```
+
+    $ vbus-cmd --domain=com --app=audio node add --file node.json config
+    2020/09/17 10:02:41 node successfully created, do not close this app (exit with Ctrl+C)
+
+Retrieving elements:
+
+    $ vbus-cmd discover com.audio
+      {
+          "boolangery-ThinkPad-P1-Gen-2": {
+              "config": {
+                  [...]
+              }
+          }
+      }
+
+Reading an attribute value:
+
+    $ vbus-cmd -p 'com.audio.>' attribute get com.audio.boolangery-ThinkPad-P1-Gen-2.config.volume
+    80
+
+You can also use the `.local.` notation that will be replaced by current hostname: 
+
+    $ vbus-cmd -p 'com.audio.>' attribute get com.audio.local.config.volume
+    80
+    
+### node get
+
+    vbus-cmd -p 'com.audio.>' node get com.audio.local.config
+    {
+        "device": {
+            [...]
+        },
+        "volume": {
+            [...]
+        }
+    }
+
+### attribute get
+
+Read an attribute value:
+
+    $ vbus-cmd -p 'com.audio.>' attribute get com.audio.local.config.volume
+    80
+
+In the path the `.local.` segment will be expanded to current hostname.
+
+### attribute set
+
+Set an attribute value
+
+    $ vbus-cmd -p 'com.audio.>' attribute set com.audio.local.config.volume 60
+    
+### method call
+
+    $ vbus-cmd -p 'system.zigbee.>' method call 120
+
 ## Interactive mode
 
     vbus-cmd -i
