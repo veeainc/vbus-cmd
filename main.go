@@ -303,4 +303,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	if vbusConn != nil {
+		vbusConn.Close()
+	}
 }
