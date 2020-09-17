@@ -136,6 +136,16 @@ Set an attribute value
 
     $ vbus-cmd -p 'com.audio.>' attribute set com.audio.local.config.volume 60
     
+The value must be a valid json value. As quote are used in bash, you have to escape them when passing a
+string value.
+
+Example of valid values:
+
+    $ "\"a string value\""
+    $ '"a string value"'
+    $ 60
+    $ "{\"service_ip\":\"192.168.1.88\"}"
+    
 ### method call
 
     $ vbus-cmd -p 'system.zigbee.>' method call 120
