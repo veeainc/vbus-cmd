@@ -2,6 +2,12 @@ bitbucket.org/vbus/vbus.go v1.3.1-0.20200916082707-86b3dac2787e h1:fpVev+mciMCpm
 bitbucket.org/vbus/vbus.go v1.3.1-0.20200916082707-86b3dac2787e/go.mod h1:JAOWsr38U3FZgPN+0C2b0U10cHEcW1SgmIfpp4XITrY=
 bitbucket.org/vbus/vbus.go v1.3.1-0.20200918100012-387d3292b883 h1:nj30qYlE+WPQkf3JbikGOIjd9D56w7EHvSUMlCOjhSs=
 bitbucket.org/vbus/vbus.go v1.3.1-0.20200918100012-387d3292b883/go.mod h1:JAOWsr38U3FZgPN+0C2b0U10cHEcW1SgmIfpp4XITrY=
+bitbucket.org/vbus/vbus.go v1.3.1-0.20200918112129-9cd3734ecdef h1:qM0C8V7jSGTNQAEbF1pJ2hCKCw7TjCJMKd7GSKHjkNE=
+bitbucket.org/vbus/vbus.go v1.3.1-0.20200918112129-9cd3734ecdef/go.mod h1:JAOWsr38U3FZgPN+0C2b0U10cHEcW1SgmIfpp4XITrY=
+bitbucket.org/vbus/vbus.go v1.3.1-0.20200918123052-769d5f8db2a8 h1:WTy3zDbQto3Ax7AAdE286AKsaKBTg1ftiromaAlZymE=
+bitbucket.org/vbus/vbus.go v1.3.1-0.20200918123052-769d5f8db2a8/go.mod h1:JAOWsr38U3FZgPN+0C2b0U10cHEcW1SgmIfpp4XITrY=
+bitbucket.org/vbus/vbus.go v1.3.1-0.20200918123608-9a25d6271eba h1:2NKryIn8iewonPQlv0Dc5J3S4wfQTpnT2WhDfbmJ3lo=
+bitbucket.org/vbus/vbus.go v1.3.1-0.20200918123608-9a25d6271eba/go.mod h1:JAOWsr38U3FZgPN+0C2b0U10cHEcW1SgmIfpp4XITrY=
 bitbucket.org/veeafr/utils.go v1.3.0 h1:daw0rgQT8dZp6r4lhPtbUyIwYka/dLfFiZIH3CP+BJo=
 bitbucket.org/veeafr/utils.go v1.3.0/go.mod h1:valOTtmLyTgkNg/9F16BFO3DXAg15/WeiW/WlEjN2N8=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
