@@ -2,6 +2,7 @@ package main
 
 import (
 	vBus "bitbucket.org/vbus/vbus.go"
+	"bitbucket.org/veeafr/utils.go/system"
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -181,7 +182,7 @@ func main() {
 
 							log.Println("node successfully created, do not close this app (exit with Ctrl+C)")
 
-							waitForCtrlC()
+							system.WaitForCtrlC()
 							return nil
 						},
 					},
@@ -282,7 +283,7 @@ func main() {
 
 					log.Println("exposing service, do not close this app (exit with Ctrl+C)")
 
-					waitForCtrlC()
+					system.WaitForCtrlC()
 					return nil
 				},
 			},
