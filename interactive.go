@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bitbucket.org/veeafr/utils.go/types"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -279,7 +280,7 @@ func startInteractiveDiscover() {
 			if elem != nil {
 				currentElement = elem
 				if elem.IsNode() {
-					for name, _ := range elem.AsNode().Elements() {
+					for name := range elem.AsNode().Elements() {
 						suggests = append(suggests, prompt.Suggest{Text: name})
 					}
 				}
@@ -374,29 +375,29 @@ func printLocation(elem *vBus.UnknownProxy) {
 }
 
 func printJsonSchema(schema vBus.JsonObj, prefix string) {
-	if hasKey(schema, "type") && hasKey(schema, "items") {
-		if getKey(schema, "type") == "array" {
-			s := getKey(schema, "items")
+	if types.HasKey(schema, "type") && types.HasKey(schema, "items") {
+		if types.GetKey(schema, "type") == "array" {
+			s := types.GetKey(schema, "items")
 			if s == nil {
 				writer.Write(prefix)
 				writer.WriteBold("[null]\n")
 				return
 			}
 
-			items :=s.(JsonArray)
+			items := s.(JsonArray)
 			for _, item := range items {
-				if hasKey(item, "title") {
-					writer.WriteColor(prefix+getKey(item, "title").(string)+" ", prompt.DarkGreen)
+				if types.HasKey(item, "title") {
+					writer.WriteColor(prefix+types.GetKey(item, "title").(string)+" ", prompt.DarkGreen)
 				} else {
 					writer.Write(prefix)
 				}
 
-				if hasKey(item, "type") {
-					writer.WriteBold("[" + getKey(item, "type").(string) + "]")
+				if types.HasKey(item, "type") {
+					writer.WriteBold("[" + types.GetKey(item, "type").(string) + "]")
 				}
 
-				if hasKey(item, "description") {
-					writer.Write(" (" + getKey(item, "description").(string) + ")")
+				if types.HasKey(item, "description") {
+					writer.Write(" (" + types.GetKey(item, "description").(string) + ")")
 				}
 
 				writer.Write("\n")
@@ -404,9 +405,9 @@ func printJsonSchema(schema vBus.JsonObj, prefix string) {
 
 			return
 		}
-	} else if hasKey(schema, "type") {
+	} else if types.HasKey(schema, "type") {
 		writer.Write(prefix)
-		writer.WriteBold("[" + getKey(schema, "type").(string) + "]")
+		writer.WriteBold("[" + types.GetKey(schema, "type").(string) + "]")
 		return
 	}
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bitbucket.org/veeafr/utils.go/types"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"strings"
 
 	vBus "bitbucket.org/vbus/vbus.go"
+	"bitbucket.org/veeafr/utils.go/system"
 	"github.com/jeremywohl/flatten"
 )
 
@@ -100,7 +102,7 @@ func goToPrettyColoredJson(val interface{}) string {
 	if b, err := json.MarshalIndent(val, "", "    "); err != nil {
 		log.Fatal(err)
 	} else {
-		if isTty() {
+		if system.IsTty() {
 			return string(pretty.Color(b, nil))
 		}
 		return string(b)
@@ -159,7 +161,7 @@ func jsonObjToRawDef(tree vBus.JsonAny) vBus.RawNode {
 
 	rawNode := vBus.RawNode{}
 	for k, v := range obj {
-		if isMap(v) {
+		if types.IsMap(v) {
 			rawNode[k] = vBus.NewNodeDef(jsonObjToRawDef(v))
 		} else if vBus.IsNode(v) {
 			rawNode[k] = vBus.NewAttributeDef(k, v)
