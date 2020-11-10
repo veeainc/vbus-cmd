@@ -17,6 +17,7 @@ import (
 // default module name, can be overrided with option
 var domain = "system"
 var appName = "vbus-cmd"
+var wait = false
 
 func main() {
 	var vbusConn *vBus.Client
@@ -24,7 +25,7 @@ func main() {
 	// get vBus connection instance
 	getConn := func() *vBus.Client {
 		if vbusConn == nil {
-			vbusConn = getConnection(domain, appName)
+			vbusConn = getConnection(domain, appName, wait)
 		}
 		return vbusConn
 	}
@@ -41,7 +42,7 @@ func main() {
 			"\n   vbus-cmd method call -t 120 system.zigbee.boolangery-ThinkPad-P1-Gen-2.controller.scan 120" +
 			"\n   vbus-cmd --app=foobar node add config \"{\\\"service_ip\\\":\\\"192.168.1.88\\\"}\"" +
 			"\n   vbus-cmd -p \"system.foobar.>\" attribute get system.foobar.local.config.service_ip" +
-			"\n   vbus-cmd --domain=mydomain --app=myapp expose --name=redis --protocol=redis --port=6379",
+			"\n   vbus-cmd --wait --domain=mydomain --app=myapp expose --name=redis --protocol=redis --port=6379",
 		Description: "This command line tool allow you to run vBus commands. When running for the first time, a configuration\n" +
 			"   file will be created in $HOME or $VBUS_PATH env. variable. So you need to have write access to this folder.\n" +
 			"\nENV. VARIABLES:" +
@@ -49,6 +50,7 @@ func main() {
 			"\n   VBUS_URL: direct nats server url (optional)",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: "debug", Aliases: []string{"d"}, Value: false, Usage: "Show vBus library logs"},
+			&cli.BoolFlag{Name: "wait", Aliases: []string{"w"}, Value: false, Destination: &wait, Usage: "Wait for vBus connection"},
 			&cli.BoolFlag{Name: "interactive", Aliases: []string{"i"}, Value: false, Usage: "Start an interactive prompt"},
 			&cli.StringSliceFlag{Name: "permission", Aliases: []string{"p"}, Usage: "Ask a permission before running the command"},
 			&cli.StringFlag{Name: "domain", Usage: "Change domain name", Value: domain, Destination: &domain},

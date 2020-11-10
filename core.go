@@ -8,17 +8,27 @@ import (
 	"github.com/tidwall/pretty"
 	"log"
 	"strings"
-
+	"time"
 	vBus "bitbucket.org/vbus/vbus.go"
 	"bitbucket.org/veeafr/utils.go/system"
 	"github.com/jeremywohl/flatten"
 )
 
 // Get a new vBus connection.
-func getConnection(domain, appName string) *vBus.Client {
+func getConnection(domain, appName string, wait bool) *vBus.Client {
 	conn := vBus.NewClient(domain, appName)
-	if err := conn.Connect(); err != nil {
-		log.Fatal(err.Error())
+	connected := false
+	for !connected {
+		if err := conn.Connect(); err != nil {
+			if wait {
+				log.Print(err.Error())
+				time.Sleep(30*time.Second)
+			} else {
+				log.Fatal(err.Error())
+			}
+		} else {
+			connected = true
+		}
 	}
 	return conn
 }
