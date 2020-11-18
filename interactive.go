@@ -767,6 +767,7 @@ func exit(_ *prompt.Buffer) {
 }
 
 func handleExit() {
+	removeConfig()
 	switch v := recover().(type) {
 	case nil:
 		return

@@ -3,7 +3,7 @@ module github.com/veeainc/vbus-cmd
 go 1.13
 
 require (
-	bitbucket.org/vbus/vbus.go v1.3.1-0.20200918123608-9a25d6271eba
+	bitbucket.org/vbus/vbus.go v1.4.0
 	bitbucket.org/veeafr/utils.go v1.3.0
 	github.com/c-bata/go-prompt v0.2.3
 	github.com/jeremywohl/flatten v1.0.1

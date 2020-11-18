@@ -12,12 +12,26 @@ import (
 	"os"
 	"strings"
 	"time"
+	"math/rand"
+	"strconv"
+	"path"
 )
 
 // default module name, can be overrided with option
-var domain = "system"
-var appName = "vbus-cmd"
+var domain = "cmd"
+var appName = "new"
 var wait = false
+var deleteConfigFile = false
+
+func removeConfig() {
+	if deleteConfigFile == true {
+		vbusPath := os.Getenv("VBUS_PATH")
+		if vbusPath == ""{
+			vbusPath = path.Join(os.Getenv("HOME"), "vbus")
+		}
+		os.Remove(path.Join(vbusPath, domain + "." + appName + ".conf"))
+	}
+}
 
 func main() {
 	var vbusConn *vBus.Client
@@ -29,6 +43,8 @@ func main() {
 		}
 		return vbusConn
 	}
+
+	
 
 	app := &cli.App{
 		Name:  "vbus-cmd",
@@ -64,6 +80,12 @@ func main() {
 				vBus.SetLogLevel(logrus.FatalLevel)
 			}
 
+			if appName == "new"{
+				randomValue := rand.Intn(99999999)
+				appName = strconv.Itoa(randomValue)
+				deleteConfigFile = true
+			}
+
 			for _, perm := range c.StringSlice("permission") {
 				conn := getConn()
 				askPermission(perm, conn)
@@ -74,8 +96,16 @@ func main() {
 					vbusConn.Close()
 				}
 				startInteractivePrompt()
+				
 				os.Exit(0)
 			}
+			return nil
+		},
+		After: func(c *cli.Context) error {
+			if vbusConn != nil {
+				vbusConn.Close()
+			}
+			removeConfig()
 			return nil
 		},
 		Commands: []*cli.Command{
