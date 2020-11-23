@@ -10,6 +10,10 @@ bitbucket.org/vbus/vbus.go v1.3.1-0.20200918123608-9a25d6271eba h1:2NKryIn8iewon
 bitbucket.org/vbus/vbus.go v1.3.1-0.20200918123608-9a25d6271eba/go.mod h1:JAOWsr38U3FZgPN+0C2b0U10cHEcW1SgmIfpp4XITrY=
 bitbucket.org/vbus/vbus.go v1.4.0 h1:TSIZK8OwA/w3Ztp4V2sxpISuBCkaaqD8WgZw+pYkm9k=
 bitbucket.org/vbus/vbus.go v1.4.0/go.mod h1:JAOWsr38U3FZgPN+0C2b0U10cHEcW1SgmIfpp4XITrY=
+bitbucket.org/vbus/vbus.go v1.4.1 h1:wfPs68eHcawhLmfcLZT8g+K25nhyHqsX9YK47dpQOxM=
+bitbucket.org/vbus/vbus.go v1.4.1/go.mod h1:JAOWsr38U3FZgPN+0C2b0U10cHEcW1SgmIfpp4XITrY=
+bitbucket.org/vbus/vbus.go v1.4.2 h1:S5ow0VOg+RVmlgtJDVw9O+LGrQuvELbQxa330H1fuMc=
+bitbucket.org/vbus/vbus.go v1.4.2/go.mod h1:JAOWsr38U3FZgPN+0C2b0U10cHEcW1SgmIfpp4XITrY=
 bitbucket.org/veeafr/utils.go v1.3.0 h1:daw0rgQT8dZp6r4lhPtbUyIwYka/dLfFiZIH3CP+BJo=
 bitbucket.org/veeafr/utils.go v1.3.0/go.mod h1:valOTtmLyTgkNg/9F16BFO3DXAg15/WeiW/WlEjN2N8=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
