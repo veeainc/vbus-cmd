@@ -1,17 +1,18 @@
 package main
 
 import (
-	"bitbucket.org/veeafr/utils.go/types"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/tidwall/pretty"
 	"log"
 	"strings"
 	"time"
+
 	vBus "bitbucket.org/vbus/vbus.go"
 	"bitbucket.org/veeafr/utils.go/system"
+	"bitbucket.org/veeafr/utils.go/types"
 	"github.com/jeremywohl/flatten"
+	"github.com/tidwall/pretty"
 )
 
 // Get a new vBus connection.
@@ -22,7 +23,7 @@ func getConnection(domain, appName string, wait bool) *vBus.Client {
 		if err := conn.Connect(); err != nil {
 			if wait {
 				log.Print(err.Error())
-				time.Sleep(30*time.Second)
+				time.Sleep(30 * time.Second)
 			} else {
 				log.Fatal(err.Error())
 			}
