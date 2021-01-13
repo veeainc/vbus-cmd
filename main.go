@@ -1,20 +1,23 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
+	"log"
+	"math/rand"
+	"os"
+	"path"
+	"strconv"
+	"strings"
+	"time"
+
 	vBus "bitbucket.org/vbus/vbus.go"
 	"bitbucket.org/veeafr/utils.go/system"
-	"fmt"
+	"github.com/Jeffail/gabs"
+	"github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
-	"io/ioutil"
-	"log"
-	"os"
-	"strings"
-	"time"
-	"math/rand"
-	"strconv"
-	"path"
 )
 
 // default module name, can be overrided with option
@@ -22,15 +25,26 @@ var domain = "cmd"
 var appName = "new"
 var wait = false
 var deleteConfigFile = false
+var logR = logrus.New()
+
+type lf = logrus.Fields // alias
 
 func removeConfig() {
 	if deleteConfigFile == true {
 		vbusPath := os.Getenv("VBUS_PATH")
-		if vbusPath == ""{
+		if vbusPath == "" {
 			vbusPath = path.Join(os.Getenv("HOME"), "vbus")
 		}
-		os.Remove(path.Join(vbusPath, domain + "." + appName + ".conf"))
+		os.Remove(path.Join(vbusPath, domain+"."+appName+".conf"))
 	}
+}
+
+func printMsg(m *nats.Msg) {
+	logR.WithFields(lf{
+		"subject": m.Subject,
+		"data":    string(m.Data),
+		"reply":   m.Reply,
+	}).Info("vBus Message")
 }
 
 func main() {
@@ -43,8 +57,6 @@ func main() {
 		}
 		return vbusConn
 	}
-
-	
 
 	app := &cli.App{
 		Name:  "vbus-cmd",
@@ -80,7 +92,7 @@ func main() {
 				vBus.SetLogLevel(logrus.FatalLevel)
 			}
 
-			if appName == "new"{
+			if appName == "new" {
 				randomValue := rand.Intn(99999999)
 				appName = strconv.Itoa(randomValue)
 				deleteConfigFile = true
@@ -96,7 +108,7 @@ func main() {
 					vbusConn.Close()
 				}
 				startInteractivePrompt()
-				
+
 				os.Exit(0)
 			}
 			return nil
@@ -315,6 +327,45 @@ func main() {
 
 					log.Println("exposing service, do not close this app (exit with Ctrl+C)")
 
+					system.WaitForCtrlC()
+					return nil
+				},
+			},
+			{
+				Name:    "spy",
+				Aliases: []string{"s"},
+				Usage:   "spy pub/sub messages",
+				Action: func(c *cli.Context) error {
+					// request full permission then close regular vBus connection
+					conn := getConn()
+					askPermission(">", conn)
+					conn.Close()
+
+					// re-open the same connection but with direct nats access
+					vbusPath := os.Getenv("VBUS_PATH")
+					if vbusPath == "" {
+						vbusPath = path.Join(os.Getenv("HOME"), "vbus")
+					}
+					confFile := path.Join(vbusPath, domain+"."+appName+".conf")
+					file, _ := ioutil.ReadFile(confFile)
+					clientConfig, _ := gabs.ParseJSON([]byte(file))
+
+					client, err := nats.Connect(clientConfig.Search("vbus", "url").Data().(string), nats.UserInfo(clientConfig.Search("client", "user").Data().(string), clientConfig.Search("key", "private").Data().(string)))
+					if err != nil {
+						logR.Fatalf("Can't connect: %v\n", err)
+					}
+					defer client.Close()
+
+					// Subscribe to everything
+					if _, err := client.Subscribe(">", func(m *nats.Msg) {
+						printMsg(m)
+					}); err != nil {
+						logR.WithFields(lf{
+							"error": err.Error(),
+						}).Error("cannot subscribe spi")
+					}
+
+					log.Println("spi started (exit with Ctrl+C)")
 					system.WaitForCtrlC()
 					return nil
 				},
