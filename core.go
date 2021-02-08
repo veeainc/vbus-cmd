@@ -8,19 +8,19 @@ import (
 	"strings"
 	"time"
 
-	vBus "bitbucket.org/vbus/vbus.go"
-	"bitbucket.org/veeafr/utils.go/system"
-	"bitbucket.org/veeafr/utils.go/types"
 	"github.com/jeremywohl/flatten"
 	"github.com/tidwall/pretty"
+	"github.com/veeainc/utils.go/system"
+	"github.com/veeainc/utils.go/types"
+	vBus "github.com/veeainc/vbus.go"
 )
 
 // Get a new vBus connection.
-func getConnection(domain, appName string, wait bool) *vBus.Client {
+func getConnection(domain, appName string, permissions []string, wait bool) *vBus.Client {
 	conn := vBus.NewClient(domain, appName)
 	connected := false
 	for !connected {
-		if err := conn.Connect(); err != nil {
+		if err := conn.Connect(vBus.WithPermissionSlice(permissions)); err != nil {
 			if wait {
 				log.Print(err.Error())
 				time.Sleep(30 * time.Second)

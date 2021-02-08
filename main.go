@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
-	vBus "bitbucket.org/vbus/vbus.go"
-	"bitbucket.org/veeafr/utils.go/system"
 	"github.com/Jeffail/gabs"
 	"github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+	"github.com/veeainc/utils.go/system"
+	vBus "github.com/veeainc/vbus.go"
 )
 
 // default module name, can be overrided with option
@@ -49,11 +49,12 @@ func printMsg(m *nats.Msg) {
 
 func main() {
 	var vbusConn *vBus.Client
+	var emptyPermission []string
 
 	// get vBus connection instance
-	getConn := func() *vBus.Client {
+	getConn := func(permission []string) *vBus.Client {
 		if vbusConn == nil {
-			vbusConn = getConnection(domain, appName, wait)
+			vbusConn = getConnection(domain, appName, permission, wait)
 		}
 		return vbusConn
 	}
@@ -98,11 +99,6 @@ func main() {
 				deleteConfigFile = true
 			}
 
-			for _, perm := range c.StringSlice("permission") {
-				conn := getConn()
-				askPermission(perm, conn)
-			}
-
 			if c.Bool("interactive") {
 				if vbusConn != nil {
 					vbusConn.Close()
@@ -110,6 +106,8 @@ func main() {
 				startInteractivePrompt()
 
 				os.Exit(0)
+			} else {
+				getConn(c.StringSlice("permission"))
 			}
 			return nil
 		},
@@ -135,8 +133,7 @@ func main() {
 						return errors.New("'discover' exactly one PATH argument")
 					}
 
-					conn := getConn()
-					askPermission(c.Args().Get(0), conn)
+					conn := getConn([]string{c.Args().Get(0)})
 					if elem, err := conn.Discover(c.Args().Get(0), 2*time.Second); err != nil {
 						return err
 					} else {
@@ -168,7 +165,7 @@ func main() {
 								return errors.New("'get' expect exactly one PATH argument")
 							}
 
-							conn := getConn()
+							conn := getConn(emptyPermission)
 							node := getNode(c.Args().Get(0), conn)
 							dumpElementToColoredJson(node)
 							return nil
@@ -218,7 +215,7 @@ func main() {
 							// create vBus raw node
 							rawNode := jsonObjToRawDef(tree)
 
-							conn := getConn()
+							conn := getConn(emptyPermission)
 							_, err := conn.AddNode(uuid, rawNode)
 							if err != nil {
 								log.Fatal(err.Error())
@@ -245,7 +242,7 @@ func main() {
 							"\n	 VALUE is a Json value",
 						ArgsUsage: "PATH VALUE",
 						Action: func(c *cli.Context) error {
-							conn := getConn()
+							conn := getConn(emptyPermission)
 							attr := getAttribute(c.Args().Get(0), conn)
 							return attr.SetValue(jsonToGo(c.Args().Get(1)))
 						},
@@ -258,7 +255,7 @@ func main() {
 							&cli.IntFlag{Name: "timeout", Aliases: []string{"t"}, Value: 1},
 						},
 						Action: func(c *cli.Context) error {
-							conn := getConn()
+							conn := getConn(emptyPermission)
 							attr := getAttribute(c.Args().Get(0), conn)
 							if val, err := attr.ReadValueWithTimeout(time.Duration(c.Int("timeout")) * time.Second); err != nil {
 								return err
@@ -283,7 +280,7 @@ func main() {
 							&cli.IntFlag{Name: "timeout", Aliases: []string{"t"}, Value: 1},
 						},
 						Action: func(c *cli.Context) error {
-							conn := getConn()
+							conn := getConn(emptyPermission)
 							attr := getMethod(c.Args().Get(0), conn)
 							args := jsonToGo(c.Args().Get(1))
 
@@ -320,7 +317,7 @@ func main() {
 					&cli.StringFlag{Name: "path", Aliases: []string{"a"}, Usage: "Optional path appended to service uri", Value: ""},
 				},
 				Action: func(c *cli.Context) error {
-					conn := getConn()
+					conn := getConn(emptyPermission)
 					if err := conn.Expose(c.String("name"), c.String("protocol"), c.Int("port"), c.String("path")); err != nil {
 						return err
 					}
@@ -337,8 +334,11 @@ func main() {
 				Usage:   "spy pub/sub messages",
 				Action: func(c *cli.Context) error {
 					// request full permission then close regular vBus connection
-					conn := getConn()
-					askPermission(">", conn)
+					if vbusConn != nil {
+						vbusConn.Close()
+						vbusConn = nil
+					}
+					conn := getConn([]string{">"})
 					conn.Close()
 
 					// re-open the same connection but with direct nats access

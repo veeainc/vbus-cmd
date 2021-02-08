@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bitbucket.org/veeafr/utils.go/types"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,9 +11,10 @@ import (
 	"strings"
 	"time"
 
-	vBus "bitbucket.org/vbus/vbus.go"
 	"github.com/c-bata/go-prompt"
 	gocache "github.com/patrickmn/go-cache"
+	"github.com/veeainc/utils.go/types"
+	vBus "github.com/veeainc/vbus.go"
 )
 
 var cache *gocache.Cache // cache used to store vBus element
