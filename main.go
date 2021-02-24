@@ -159,7 +159,10 @@ func main() {
 						Aliases:     []string{"s"},
 						Usage:       "Get node on `PATH`",
 						Description: "PATH is a dot style vBus path",
-						ArgsUsage:   "PATH",
+						Flags: []cli.Flag{
+							&cli.BoolFlag{Name: "json", Aliases: []string{"j"}, Usage: "Display output as a simplified json (no method, no json-schema)"},
+						},
+						ArgsUsage: "PATH",
 						Action: func(c *cli.Context) error {
 							if c.Args().Len() != 1 {
 								return errors.New("'get' expect exactly one PATH argument")
@@ -167,7 +170,12 @@ func main() {
 
 							conn := getConn(emptyPermission)
 							node := getNode(c.Args().Get(0), conn)
-							dumpElementToColoredJson(node)
+							if c.Bool("json") {
+								fmt.Println(goToPrettyColoredJson(node.AsNode().Json()))
+							} else {
+								dumpElementToColoredJson(node)
+							}
+
 							return nil
 						},
 					}, {
@@ -368,6 +376,31 @@ func main() {
 					log.Println("spi started (exit with Ctrl+C)")
 					system.WaitForCtrlC()
 					return nil
+				},
+			},
+			{
+				Name:  "info",
+				Usage: "Get vBus information",
+				Subcommands: []*cli.Command{
+					{
+						Name:    "address",
+						Aliases: []string{"a"},
+						Usage:   "get the IP address of your service",
+						Action: func(c *cli.Context) error {
+							conn := getConn(emptyPermission)
+							IPaddress, err := conn.GetNetworkIP()
+
+							if err != nil {
+								logR.WithFields(lf{
+									"error": err.Error(),
+								}).Error("cannot get network IP")
+								return nil
+							}
+
+							fmt.Println(IPaddress)
+							return nil
+						},
+					},
 				},
 			},
 			{

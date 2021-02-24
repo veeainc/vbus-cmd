@@ -15,7 +15,6 @@ require (
 	github.com/sirupsen/logrus v1.5.0
 	github.com/tidwall/pretty v1.0.2
 	github.com/urfave/cli/v2 v2.2.0
-	github.com/veeainc/utils.go v1.3.2
-	github.com/veeainc/vbus.go v1.5.0
+	github.com/veeainc/utils.go v1.3.3
+	github.com/veeainc/vbus.go v1.5.1
 )
-
