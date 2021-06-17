@@ -23,6 +23,7 @@ import (
 // default module name, can be overrided with option
 var domain = "cmd"
 var appName = "new"
+var creds = ""
 var wait = false
 var deleteConfigFile = false
 var logR = logrus.New()
@@ -54,7 +55,11 @@ func main() {
 	// get vBus connection instance
 	getConn := func(permission []string) *vBus.Client {
 		if vbusConn == nil {
-			vbusConn = getConnection(domain, appName, permission, wait)
+			if creds == "" {
+				vbusConn = getConnection(domain, appName, permission, wait)
+			} else {
+				vbusConn = getConnection(creds, "", permission, wait)
+			}
 		}
 		return vbusConn
 	}
@@ -84,6 +89,7 @@ func main() {
 			&cli.StringSliceFlag{Name: "permission", Aliases: []string{"p"}, Usage: "Ask a permission before running the command"},
 			&cli.StringFlag{Name: "domain", Usage: "Change domain name", Value: domain, Destination: &domain},
 			&cli.StringFlag{Name: "app", Usage: "Change app name", Value: appName, Destination: &appName},
+			&cli.StringFlag{Name: "creds", Aliases: []string{"c"}, Usage: "Provide Credentials file (domain.name.creds)", Destination: &creds},
 		},
 		Before: func(c *cli.Context) error {
 			// debug mode
@@ -93,7 +99,8 @@ func main() {
 				vBus.SetLogLevel(logrus.FatalLevel)
 			}
 
-			if appName == "new" {
+			if appName == "new" && creds == "" {
+				// create a random app name in case no credentials nor name are been provided
 				randomValue := rand.Intn(99999999)
 				appName = strconv.Itoa(randomValue)
 				deleteConfigFile = true
