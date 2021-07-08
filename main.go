@@ -51,6 +51,8 @@ func main() {
 	var vbusConn *vBus.Client
 	var emptyPermission []string
 
+	logR.SetFormatter(&logrus.TextFormatter{})
+
 	// get vBus connection instance
 	getConn := func(permission []string) *vBus.Client {
 		if vbusConn == nil {
