@@ -24,6 +24,7 @@ import (
 var domain = "cmd"
 var appName = "new"
 var creds = ""
+var jwt = ""
 var wait = false
 var deleteConfigFile = false
 var logR = logrus.New()
@@ -55,10 +56,12 @@ func main() {
 	// get vBus connection instance
 	getConn := func(permission []string) *vBus.Client {
 		if vbusConn == nil {
-			if creds == "" {
-				vbusConn = getConnection(domain, appName, permission, wait)
+			if jwt != "" {
+				vbusConn = getConnection("", "", jwt, permission, wait)
+			} else if creds == "" {
+				vbusConn = getConnection(domain, appName, "", permission, wait)
 			} else {
-				vbusConn = getConnection(creds, "", permission, wait)
+				vbusConn = getConnection(creds, "", "", permission, wait)
 			}
 		}
 		return vbusConn
@@ -90,6 +93,7 @@ func main() {
 			&cli.StringFlag{Name: "domain", Usage: "Change domain name", Value: domain, Destination: &domain},
 			&cli.StringFlag{Name: "app", Usage: "Change app name", Value: appName, Destination: &appName},
 			&cli.StringFlag{Name: "creds", Aliases: []string{"c"}, Usage: "Provide Credentials file (domain.name.creds)", Destination: &creds},
+			&cli.StringFlag{Name: "jwt", Aliases: []string{"j"}, Usage: "Provide JWT seed", Destination: &jwt},
 		},
 		Before: func(c *cli.Context) error {
 			// debug mode
@@ -278,6 +282,23 @@ func main() {
 								fmt.Println(goToJson(val))
 								return nil
 							}
+						},
+					},
+					{
+						Name:  "sub",
+						Usage: "Subscribe `ATTR` value",
+						Flags: []cli.Flag{
+							&cli.IntFlag{Name: "timeout", Aliases: []string{"t"}, Value: 1},
+						},
+						Action: func(c *cli.Context) error {
+							conn := getConn(emptyPermission)
+							attr := getAttribute(c.Args().Get(0), conn)
+							attr.SubscribeSet(func(node *vBus.UnknownProxy, segment ...string) {
+								fmt.Println(jsonToGo(node.String()))
+							})
+							log.Println("subscribe started (exit with Ctrl+C)")
+							system.WaitForCtrlC()
+							return nil
 						},
 					},
 				},

@@ -16,8 +16,14 @@ import (
 )
 
 // Get a new vBus connection.
-func getConnection(domain, appName string, permissions []string, wait bool) *vBus.Client {
-	conn := vBus.NewClient(domain, appName)
+func getConnection(domain, appName, jwt string, permissions []string, wait bool) *vBus.Client {
+	var conn *vBus.Client
+	if jwt != "" {
+		conn = vBus.NewJWTClient(jwt)
+	} else {
+		conn = vBus.NewClient(domain, appName)
+	}
+
 	connected := false
 	for !connected {
 		if err := conn.Connect(vBus.WithPermissionSlice(permissions)); err != nil {

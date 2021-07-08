@@ -38,7 +38,14 @@ func getInteractiveConnection() (*vBus.Client, error) {
 		_ = os.Setenv("VBUS_URL", "nats://"+hubIpAddress+":21400")
 	}
 
-	conn := vBus.NewClient(domain, appName)
+	var conn *vBus.Client
+	if jwt != "" {
+		conn = vBus.NewJWTClient(jwt)
+	} else if creds != "" {
+		conn = vBus.NewClient(creds, "")
+	} else {
+		conn = vBus.NewClient(domain, appName)
+	}
 
 	if hubSerial != "" {
 		if err := conn.Connect(vBus.HubId(hubSerial)); err != nil {
@@ -228,7 +235,7 @@ func startInteractiveDiscover() {
 
 	writer.WriteLog("Searching running modules...")
 	writer.WriteLog("Ctrl+D to go back")
-	modules, err := conn.DiscoverModules(1 * time.Second)
+	modules, err := conn.DiscoverModules(5 * time.Second)
 	if err != nil {
 		writer.WriteError(err)
 		return

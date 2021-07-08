@@ -166,6 +166,10 @@ github.com/veeainc/vbus.go v1.5.0 h1:H/JUjJSCMxF9WMDkLZZ+bJs3Z4cN08sUJxm3Ikq5YDI
 github.com/veeainc/vbus.go v1.5.0/go.mod h1:0cNe86PR9l9qDZwW3KALxejBZtoNXx+mVLNjguMcGRo=
 github.com/veeainc/vbus.go v1.5.1 h1:RJi39AQqrU76tuQW/qCuaU2HQ1irjm+lC71Zw6yoyEM=
 github.com/veeainc/vbus.go v1.5.1/go.mod h1:0cNe86PR9l9qDZwW3KALxejBZtoNXx+mVLNjguMcGRo=
+github.com/veeainc/vbus.go v1.5.3-0.20210618100233-fa33e7f676a8 h1:AzqvmrZNjSyGUFrr2AH0olV+Rd1kiqWXpAu0votOQ88=
+github.com/veeainc/vbus.go v1.5.3-0.20210618100233-fa33e7f676a8/go.mod h1:3xKwFoLIcWPNT0g4IEx3HgNMGhCrYm98hu+OmX9hNe8=
+github.com/veeainc/vbus.go v1.5.3-0.20210702071434-7e7e094c3173 h1:L7Ol90xmuMevqrIAasefOJ/CWgr6mEM3TEfO0Tw6dpg=
+github.com/veeainc/vbus.go v1.5.3-0.20210702071434-7e7e094c3173/go.mod h1:Ty6DAhiBkgxQEvKARH3/o3j6u9MjCxztGoumafJ02xk=
 github.com/x-cray/logrus-prefixed-formatter v0.5.2 h1:00txxvfBM9muc0jiLIEAkAcIMJzfthRT6usrui8uGmg=
 github.com/x-cray/logrus-prefixed-formatter v0.5.2/go.mod h1:2duySbKsL6M18s5GU7VPsoEPHyzalCE06qoARUCeBBE=
 github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f h1:J9EGpcZtP0E/raorCMxlFGSTBrsSlaDGf3jU/qvAE2c=

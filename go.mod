@@ -16,7 +16,8 @@ require (
 	github.com/tidwall/pretty v1.0.2
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/veeainc/utils.go v1.3.3
-	github.com/veeainc/vbus.go v1.5.1
+	github.com/veeainc/vbus.go v1.5.3-0.20210702071434-7e7e094c3173
 )
+
 
 replace github.com/veeainc/vbus.go => ../vbus.go
