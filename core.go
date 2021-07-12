@@ -49,7 +49,7 @@ func sanitizePath(path string, conn *vBus.Client) string {
 func getAttribute(path string, conn *vBus.Client) *vBus.AttributeProxy {
 	path = sanitizePath(path, conn)
 	if attr, err := conn.GetRemoteAttr(path); err != nil {
-		log.Fatal(err.Error())
+		log.Print(err.Error())
 	} else {
 		return attr
 	}
@@ -60,7 +60,7 @@ func getAttribute(path string, conn *vBus.Client) *vBus.AttributeProxy {
 func getNode(path string, conn *vBus.Client) *vBus.UnknownProxy {
 	path = sanitizePath(path, conn)
 	if attr, err := conn.GetRemoteElement(path); err != nil {
-		log.Fatal(err.Error())
+		log.Print(err.Error())
 	} else {
 		return attr
 	}
@@ -70,13 +70,13 @@ func getNode(path string, conn *vBus.Client) *vBus.UnknownProxy {
 // Ask vBus permission.
 func askPermission(path string, conn *vBus.Client) {
 	if badSubject(path) {
-		log.Fatal(errors.New("invalid vBus path: " + path))
+		log.Print(errors.New("invalid vBus path: " + path))
 	}
 	if success, err := conn.AskPermission(path); err != nil {
-		log.Fatal(err.Error())
+		log.Print(err.Error())
 	} else {
 		if !success {
-			log.Fatal("cannot get permission: ", path)
+			log.Print("cannot get permission: ", path)
 		}
 	}
 }
@@ -85,7 +85,7 @@ func askPermission(path string, conn *vBus.Client) {
 func getMethod(path string, conn *vBus.Client) *vBus.MethodProxy {
 	path = sanitizePath(path, conn)
 	if meth, err := conn.GetRemoteMethod(path); err != nil {
-		log.Fatal(err.Error())
+		log.Print(err.Error())
 	} else {
 		return meth
 	}
@@ -98,7 +98,8 @@ func jsonToGo(arg string) interface{} {
 	var m interface{}
 	err := json.Unmarshal(b, &m)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return nil
 	}
 	return m
 }
@@ -106,7 +107,7 @@ func jsonToGo(arg string) interface{} {
 // Dump Go to Json and abort in case of error.
 func goToJson(val interface{}) string {
 	if b, err := json.Marshal(val); err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	} else {
 		return string(b)
 	}
@@ -117,7 +118,7 @@ func goToJson(val interface{}) string {
 // Its annoying to return colored sequence char when piping.
 func goToPrettyColoredJson(val interface{}) string {
 	if b, err := json.MarshalIndent(val, "", "    "); err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	} else {
 		if system.IsTty() {
 			return string(pretty.Color(b, nil))
@@ -157,7 +158,8 @@ func dumpElementFlattened(elem *vBus.UnknownProxy) {
 	if casted, ok := elem.Tree().(map[string]interface{}); ok {
 		flat, err := flatten.Flatten(casted, "", flatten.DotStyle)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
+			return
 		}
 		for k, v := range flat {
 			fmt.Printf("%s %v\n", k, v)
@@ -168,12 +170,14 @@ func dumpElementFlattened(elem *vBus.UnknownProxy) {
 // Try to convert a Json obj to a vBus raw node.
 func jsonObjToRawDef(tree vBus.JsonAny) vBus.RawNode {
 	if _, ok := tree.(vBus.JsonObj); !ok {
-		log.Fatal("Not a valid Json object")
+		log.Print("Not a valid Json object")
+		return nil
 	}
 	obj := tree.(vBus.JsonObj)
 
 	if !vBus.IsNode(obj) {
-		log.Fatal("Your root object must be a vBus node")
+		log.Print("Your root object must be a vBus node")
+		return nil
 	}
 
 	rawNode := vBus.RawNode{}

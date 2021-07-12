@@ -26,6 +26,7 @@ var appName = "new"
 var creds = ""
 var jwt = ""
 var wait = false
+var loop = false
 var deleteConfigFile = false
 var logR = logrus.New()
 
@@ -52,6 +53,8 @@ func printMsg(m *nats.Msg) {
 func main() {
 	var vbusConn *vBus.Client
 	var emptyPermission []string
+
+	logR.SetFormatter(&logrus.TextFormatter{})
 
 	// get vBus connection instance
 	getConn := func(permission []string) *vBus.Client {
@@ -88,6 +91,7 @@ func main() {
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: "debug", Aliases: []string{"d"}, Value: false, Usage: "Show vBus library logs"},
 			&cli.BoolFlag{Name: "wait", Aliases: []string{"w"}, Value: false, Destination: &wait, Usage: "Wait for vBus connection"},
+			&cli.BoolFlag{Name: "loop", Aliases: []string{"l"}, Value: false, Destination: &loop, Usage: "Loop until is successful"},
 			&cli.BoolFlag{Name: "interactive", Aliases: []string{"i"}, Value: false, Usage: "Start an interactive prompt"},
 			&cli.StringSliceFlag{Name: "permission", Aliases: []string{"p"}, Usage: "Ask a permission before running the command"},
 			&cli.StringFlag{Name: "domain", Usage: "Change domain name", Value: domain, Destination: &domain},
@@ -145,6 +149,9 @@ func main() {
 					}
 
 					conn := getConn([]string{c.Args().Get(0)})
+					if conn == nil {
+						return errors.New("no vBus connection")
+					}
 					if elem, err := conn.Discover(c.Args().Get(0), 2*time.Second); err != nil {
 						return err
 					} else {
@@ -180,7 +187,15 @@ func main() {
 							}
 
 							conn := getConn(emptyPermission)
+							if conn == nil {
+								return errors.New("no vBus connection")
+							}
+
 							node := getNode(c.Args().Get(0), conn)
+							if node == nil {
+								return errors.New("Node not available")
+							}
+
 							if c.Bool("json") {
 								fmt.Println(goToPrettyColoredJson(node.AsNode().Json()))
 							} else {
@@ -216,7 +231,8 @@ func main() {
 							if c.String("file") != "" {
 								buf, err := ioutil.ReadFile(c.String("file"))
 								if err != nil {
-									log.Fatal(err.Error())
+									log.Print(err.Error())
+									return err
 								}
 								input = string(buf)
 							} else {
@@ -225,19 +241,30 @@ func main() {
 
 							// validate uuid
 							if strings.Contains(uuid, ".") {
-								log.Fatal("Not a valid node uuid: " + uuid)
+								log.Print("Not a valid node uuid: " + uuid)
+								return errors.New("Not a valid node uuid")
 							}
 
 							// validate tree
 							tree := jsonToGo(input)
+							if tree == nil {
+								return errors.New("json not valid")
+							}
 
 							// create vBus raw node
 							rawNode := jsonObjToRawDef(tree)
+							if rawNode == nil {
+								return errors.New("raw node not valid")
+							}
 
 							conn := getConn(emptyPermission)
+							if conn == nil {
+								return errors.New("no vBus connection")
+							}
 							_, err := conn.AddNode(uuid, rawNode)
 							if err != nil {
-								log.Fatal(err.Error())
+								log.Print(err.Error())
+								return err
 							}
 
 							log.Println("node successfully created, do not close this app (exit with Ctrl+C)")
@@ -262,7 +289,13 @@ func main() {
 						ArgsUsage: "PATH VALUE",
 						Action: func(c *cli.Context) error {
 							conn := getConn(emptyPermission)
+							if conn == nil {
+								return errors.New("no vBus connection")
+							}
 							attr := getAttribute(c.Args().Get(0), conn)
+							if attr == nil {
+								return errors.New("attribute not available")
+							}
 							return attr.SetValue(jsonToGo(c.Args().Get(1)))
 						},
 					},
@@ -275,7 +308,13 @@ func main() {
 						},
 						Action: func(c *cli.Context) error {
 							conn := getConn(emptyPermission)
+							if conn == nil {
+								return errors.New("no vBus connection")
+							}
 							attr := getAttribute(c.Args().Get(0), conn)
+							if attr == nil {
+								return errors.New("attribute not available")
+							}
 							if val, err := attr.ReadValueWithTimeout(time.Duration(c.Int("timeout")) * time.Second); err != nil {
 								return err
 							} else {
@@ -317,7 +356,13 @@ func main() {
 						},
 						Action: func(c *cli.Context) error {
 							conn := getConn(emptyPermission)
+							if conn == nil {
+								return errors.New("no vBus connection")
+							}
 							attr := getMethod(c.Args().Get(0), conn)
+							if attr == nil {
+								return errors.New("method not available")
+							}
 							args := jsonToGo(c.Args().Get(1))
 
 							if _, ok := args.([]interface{}); !ok {
@@ -325,7 +370,7 @@ func main() {
 								args = jsonToGo("[" + c.Args().Get(1) + "]")
 							}
 							if casted, ok := args.([]interface{}); !ok {
-								log.Fatal("method args must be passed as a json array")
+								return errors.New("method args must be passed as a json array")
 							} else {
 								if val, err := attr.CallWithTimeout(time.Duration(c.Int("timeout"))*time.Second, casted...); err != nil {
 									return err
@@ -354,6 +399,9 @@ func main() {
 				},
 				Action: func(c *cli.Context) error {
 					conn := getConn(emptyPermission)
+					if conn == nil {
+						return errors.New("no vBus connection")
+					}
 					if err := conn.Expose(c.String("name"), c.String("protocol"), c.Int("port"), c.String("path")); err != nil {
 						return err
 					}
@@ -375,6 +423,9 @@ func main() {
 						vbusConn = nil
 					}
 					conn := getConn([]string{">"})
+					if conn == nil {
+						return errors.New("no vBus connection")
+					}
 					conn.Close()
 
 					// re-open the same connection but with direct nats access
@@ -388,7 +439,7 @@ func main() {
 
 					client, err := nats.Connect(clientConfig.Search("vbus", "url").Data().(string), nats.UserInfo(clientConfig.Search("client", "user").Data().(string), clientConfig.Search("key", "private").Data().(string)))
 					if err != nil {
-						logR.Fatalf("Can't connect: %v\n", err)
+						return err
 					}
 					defer client.Close()
 
@@ -399,6 +450,7 @@ func main() {
 						logR.WithFields(lf{
 							"error": err.Error(),
 						}).Error("cannot subscribe spi")
+						return err
 					}
 
 					log.Println("spi started (exit with Ctrl+C)")
@@ -416,13 +468,16 @@ func main() {
 						Usage:   "get the IP address of your service",
 						Action: func(c *cli.Context) error {
 							conn := getConn(emptyPermission)
+							if conn == nil {
+								return errors.New("no vBus connection")
+							}
 							IPaddress, err := conn.GetNetworkIP()
 
 							if err != nil {
 								logR.WithFields(lf{
 									"error": err.Error(),
 								}).Error("cannot get network IP")
-								return nil
+								return err
 							}
 
 							fmt.Println(IPaddress)
@@ -444,9 +499,17 @@ func main() {
 	}
 
 	app.EnableBashCompletion = true
-	err := app.Run(os.Args)
-	if err != nil {
-		log.Fatal(err)
+	err := errors.New("fake")
+	for err != nil {
+		err = app.Run(os.Args)
+		if err != nil {
+			if loop == true {
+				log.Print(err)
+				log.Print("loop until success ....")
+			} else {
+				log.Fatal(err)
+			}
+		}
 	}
 
 	if vbusConn != nil {
