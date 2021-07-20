@@ -35,7 +35,11 @@ func getInteractiveConnection() (*vBus.Client, error) {
 
 	writer.WriteLog("Connecting to vBus, please wait...")
 	if hubIpAddress != "" {
-		_ = os.Setenv("VBUS_URL", "nats://"+hubIpAddress+":21400")
+		if (creds != "") || (jwt != "") {
+			_ = os.Setenv("VBUS_URL", "nats://"+hubIpAddress+":8421")
+		} else {
+			_ = os.Setenv("VBUS_URL", "nats://"+hubIpAddress+":21400")
+		}
 	}
 
 	var conn *vBus.Client
