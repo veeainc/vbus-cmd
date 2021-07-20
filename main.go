@@ -506,6 +506,7 @@ func main() {
 			if loop == true {
 				log.Print(err)
 				log.Print("loop until success ....")
+				time.Sleep(1000 * time.Millisecond)
 			} else {
 				log.Fatal(err)
 			}
