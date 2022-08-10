@@ -41,7 +41,7 @@ func getInteractiveConnection() (*vBus.Client, error) {
 	conn := vBus.NewClient(domain, appName)
 
 	if hubSerial != "" {
-		if err := conn.Connect(vBus.HubId(hubSerial)); err != nil {
+		if err := conn.Connect(vBus.WithPwd(password), vBus.HubId(hubSerial)); err != nil {
 			return nil, err
 		}
 	} else {

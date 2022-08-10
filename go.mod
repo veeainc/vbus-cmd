@@ -18,3 +18,5 @@ require (
 	github.com/veeainc/utils.go v1.3.3
 	github.com/veeainc/vbus.go v1.5.1
 )
+
+replace github.com/veeainc/vbus.go => ../vbus.go

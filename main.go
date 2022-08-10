@@ -21,6 +21,7 @@ import (
 )
 
 // default module name, can be overrided with option
+var password = ""
 var domain = "cmd"
 var appName = "new"
 var wait = false
@@ -57,7 +58,7 @@ func main() {
 	// get vBus connection instance
 	getConn := func(permission []string) *vBus.Client {
 		if vbusConn == nil {
-			vbusConn = getConnection(domain, appName, permission, wait)
+			vbusConn = getConnection(domain, appName, password, permission, wait)
 		}
 		return vbusConn
 	}
@@ -68,6 +69,7 @@ func main() {
 		UsageText: "vbus-cmd [global options] command [command options] [arguments...]" +
 			"\n\n   Examples:" +
 			"\n   vbus-cmd discover system.zigbee" +
+			"\n   vbus-cmd -pw 01234 discover system.zigbee" +
 			"\n   vbus-cmd discover -j system.zigbee (json output)" +
 			"\n   vbus-cmd discover -f system.zigbee (flattened output)" +
 			"\n   vbus-cmd attribute get -t 10 system.zigbee.[...].1026.attributes.0" +
@@ -86,6 +88,7 @@ func main() {
 			&cli.BoolFlag{Name: "loop", Aliases: []string{"l"}, Value: false, Destination: &loop, Usage: "Loop until is successful"},
 			&cli.BoolFlag{Name: "interactive", Aliases: []string{"i"}, Value: false, Usage: "Start an interactive prompt"},
 			&cli.StringSliceFlag{Name: "permission", Aliases: []string{"p"}, Usage: "Ask a permission before running the command"},
+			&cli.StringFlag{Name: "password", Aliases: []string{"pw"}, Usage: "vBus password", Value: password, Destination: &password},
 			&cli.StringFlag{Name: "domain", Usage: "Change domain name", Value: domain, Destination: &domain},
 			&cli.StringFlag{Name: "app", Usage: "Change app name", Value: appName, Destination: &appName},
 		},

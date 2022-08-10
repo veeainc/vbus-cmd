@@ -16,11 +16,11 @@ import (
 )
 
 // Get a new vBus connection.
-func getConnection(domain, appName string, permissions []string, wait bool) *vBus.Client {
+func getConnection(domain, appName, password string, permissions []string, wait bool) *vBus.Client {
 	conn := vBus.NewClient(domain, appName)
 	connected := false
 	for !connected {
-		if err := conn.Connect(vBus.WithPermissionSlice(permissions)); err != nil {
+		if err := conn.Connect(vBus.WithPwd(password), vBus.WithPermissionSlice(permissions)); err != nil {
 			if wait {
 				log.Print(err.Error())
 				time.Sleep(30 * time.Second)
